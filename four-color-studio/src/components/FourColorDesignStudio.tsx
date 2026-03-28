@@ -52,7 +52,7 @@ const DEFAULT_TEXT = {
   x: CANVAS_SIZE / 2,
   y: CANVAS_SIZE / 2,
   size: 96,
-  colorId: "white",
+  colorId: "elegoo-white",
   fontFamily: "Arial",
   weight: "700",
 };
@@ -224,11 +224,11 @@ function floodFillRegion(
 }
 
 export default function FourColorDesignStudio() {
-  const [selIds, setSelIds] = useState<string[]>(["black", "white", "red", "blue"]);
+  const [selIds, setSelIds] = useState<string[]>(["elegoo-black", "elegoo-white", "elegoo-red", "elegoo-blue"]);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [imgName, setImgName] = useState<string>("");
-  const [bgId, setBgId] = useState<string>("black");
-  const [fillColorId, setFillColorId] = useState<string>("red");
+  const [bgId, setBgId] = useState<string>("elegoo-black");
+  const [fillColorId, setFillColorId] = useState<string>("elegoo-red");
   const [usageVersion, setUsageVersion] = useState(0);
   const [lastEdit, setLastEdit] = useState<string>("No manual edits yet.");
   const [textDraft, setTextDraft] = useState<TextOverlay>(makeTextOverlay());
