@@ -44,7 +44,7 @@ const INVENTORY_COLORS: InventoryColor[] = [
   { id: "ujoybio-orange", name: "Orange", hex: "#D96A1D" },
   
 
-  { id: "silver", name: "Silver", hex: "#8D8F9B" },
+  { id: "silver", name: "Silver", hex: "#B3B5BA" },
 ];
 
 const CANVAS_SIZE = 800;
