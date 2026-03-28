@@ -39,7 +39,7 @@ const INVENTORY_COLORS: InventoryColor[] = [
   { id: "elegoo-black", name: "Black", hex: "#1E1E20" },
   { id: "elegoo-green", name: "Green", hex: "#2F7A4A" },
   { id: "ujoybio-christmas-green", name: "Christmas green", hex: "#1F6A3A" },
-  
+  { id: "eagles-green", name: "E-A-G-L-E-S", hex:"#0F3B2F"},
   
   { id: "ujoybio-orange", name: "Orange", hex: "#D96A1D" },
   
