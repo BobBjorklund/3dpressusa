@@ -112,11 +112,7 @@ function quantize(imageData: ImageData, palette: InventoryColor[]): ImageData {
   return imageData;
 }
 
-function drawChecker(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-): void {
+function drawChecker(ctx: CanvasRenderingContext2D, w: number, h: number): void {
   const s = 32;
 
   for (let y = 0; y < h; y += s) {
@@ -149,10 +145,7 @@ function fitRect(sw: number, sh: number, tw: number, th: number) {
   return { dw, dh, ox, oy };
 }
 
-function getCanvasPoint(
-  e: MouseEvent<HTMLCanvasElement>,
-  canvas: HTMLCanvasElement,
-) {
+function getCanvasPoint(e: MouseEvent<HTMLCanvasElement>, canvas: HTMLCanvasElement) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
@@ -242,6 +235,7 @@ export default function FourColorDesignStudio() {
 
   const srcRef = useRef<HTMLCanvasElement | null>(null);
   const qRef = useRef<HTMLCanvasElement | null>(null);
+  const baseQuantizedRef = useRef<ImageData | null>(null);
 
   const selColors = useMemo(
     () => INVENTORY_COLORS.filter((c) => selIds.includes(c.id)),
@@ -289,10 +283,7 @@ export default function FourColorDesignStudio() {
       .map((c) => ({
         color: c,
         pixels: counts.get(c.hex.toUpperCase()) ?? 0,
-        pct:
-          total === 0
-            ? 0
-            : ((counts.get(c.hex.toUpperCase()) ?? 0) / total) * 100,
+        pct: total === 0 ? 0 : ((counts.get(c.hex.toUpperCase()) ?? 0) / total) * 100,
       }))
       .filter((e) => e.pixels > 0)
       .sort((a, b) => b.pixels - a.pixels);
@@ -320,74 +311,17 @@ export default function FourColorDesignStudio() {
     );
   }, [selColors, fillColorId, bgId, textDraft.colorId]);
 
-  useEffect(() => {
-    const sc = srcRef.current;
-    const qc = qRef.current;
-    if (!sc || !qc) return;
+  function drawBaseOnto(ctx: CanvasRenderingContext2D): void {
+    ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    const sCtx = sc.getContext("2d");
-    const qCtx = qc.getContext("2d");
-    if (!sCtx || !qCtx) return;
-
-    sc.width = CANVAS_SIZE;
-    sc.height = CANVAS_SIZE;
-    qc.width = CANVAS_SIZE;
-    qc.height = CANVAS_SIZE;
-
-    drawChecker(sCtx, CANVAS_SIZE, CANVAS_SIZE);
-    drawChecker(qCtx, CANVAS_SIZE, CANVAS_SIZE);
-
-    sCtx.fillStyle = bgColor.hex;
-    sCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    qCtx.fillStyle = bgColor.hex;
-    qCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    if (!img) {
-      setUsageVersion((v) => v + 1);
-      setLastEdit("No manual edits yet.");
+    if (baseQuantizedRef.current) {
+      ctx.putImageData(baseQuantizedRef.current, 0, 0);
       return;
     }
 
-    const { dw, dh, ox, oy } = fitRect(
-      img.width,
-      img.height,
-      CANVAS_SIZE,
-      CANVAS_SIZE,
-    );
-
-    sCtx.drawImage(img, ox, oy, dw, dh);
-    const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    qCtx.putImageData(quantize(id, selColors), 0, 0);
-
-    setUsageVersion((v) => v + 1);
-    setLastEdit("No manual edits yet.");
-  }, [img, selColors, bgColor]);
-
-  function toggleColor(id: string): void {
-    setSelIds((cur) => {
-      if (cur.includes(id)) {
-        return cur.length === 1 ? cur : cur.filter((x) => x !== id);
-      }
-      if (cur.length >= MAX_SELECTED) return cur;
-      return [...cur, id];
-    });
-  }
-
-  function onUpload(e: ChangeEvent<HTMLInputElement>): void {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-
-    image.onload = () => {
-      setImg(image);
-      setImgName(file.name);
-      URL.revokeObjectURL(url);
-    };
-
-    image.src = url;
+    drawChecker(ctx, CANVAS_SIZE, CANVAS_SIZE);
+    ctx.fillStyle = bgColor.hex;
+    ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   }
 
   function drawTextItem(
@@ -428,34 +362,13 @@ export default function FourColorDesignStudio() {
   }
 
   function redrawQuantizedCanvas(options?: { ghostDraftAt?: { x: number; y: number } | null }): void {
-    const sc = srcRef.current;
     const qc = qRef.current;
-    if (!sc || !qc) return;
+    if (!qc) return;
 
-    const sCtx = sc.getContext("2d");
     const qCtx = qc.getContext("2d");
-    if (!sCtx || !qCtx) return;
+    if (!qCtx) return;
 
-    drawChecker(sCtx, CANVAS_SIZE, CANVAS_SIZE);
-    drawChecker(qCtx, CANVAS_SIZE, CANVAS_SIZE);
-
-    sCtx.fillStyle = bgColor.hex;
-    sCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    qCtx.fillStyle = bgColor.hex;
-    qCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
-    if (img) {
-      const { dw, dh, ox, oy } = fitRect(
-        img.width,
-        img.height,
-        CANVAS_SIZE,
-        CANVAS_SIZE,
-      );
-
-      sCtx.drawImage(img, ox, oy, dw, dh);
-      const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-      qCtx.putImageData(quantize(id, selColors), 0, 0);
-    }
+    drawBaseOnto(qCtx);
 
     for (const item of textItems) {
       drawTextItem(qCtx, item, { selected: item.id === selectedTextId });
@@ -468,6 +381,73 @@ export default function FourColorDesignStudio() {
         { ghost: true },
       );
     }
+  }
+
+  useEffect(() => {
+    const sc = srcRef.current;
+    const qc = qRef.current;
+    if (!sc || !qc) return;
+
+    const sCtx = sc.getContext("2d");
+    const qCtx = qc.getContext("2d");
+    if (!sCtx || !qCtx) return;
+
+    sc.width = CANVAS_SIZE;
+    sc.height = CANVAS_SIZE;
+    qc.width = CANVAS_SIZE;
+    qc.height = CANVAS_SIZE;
+
+    drawChecker(sCtx, CANVAS_SIZE, CANVAS_SIZE);
+    sCtx.fillStyle = bgColor.hex;
+    sCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    drawChecker(qCtx, CANVAS_SIZE, CANVAS_SIZE);
+    qCtx.fillStyle = bgColor.hex;
+    qCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    if (!img) {
+      baseQuantizedRef.current = qCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+      setUsageVersion((v) => v + 1);
+      setLastEdit("No manual edits yet.");
+      return;
+    }
+
+    const { dw, dh, ox, oy } = fitRect(img.width, img.height, CANVAS_SIZE, CANVAS_SIZE);
+
+    sCtx.drawImage(img, ox, oy, dw, dh);
+    const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    const quantized = quantize(id, selColors);
+    qCtx.putImageData(quantized, 0, 0);
+    baseQuantizedRef.current = qCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
+    setUsageVersion((v) => v + 1);
+    setLastEdit("No manual edits yet.");
+  }, [img, selColors, bgColor]);
+
+  function toggleColor(id: string): void {
+    setSelIds((cur) => {
+      if (cur.includes(id)) {
+        return cur.length === 1 ? cur : cur.filter((x) => x !== id);
+      }
+      if (cur.length >= MAX_SELECTED) return cur;
+      return [...cur, id];
+    });
+  }
+
+  function onUpload(e: ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    const image = new Image();
+
+    image.onload = () => {
+      setImg(image);
+      setImgName(file.name);
+      URL.revokeObjectURL(url);
+    };
+
+    image.src = url;
   }
 
   function resetQuantizedImage(): void {
@@ -487,16 +467,12 @@ export default function FourColorDesignStudio() {
     qCtx.fillStyle = bgColor.hex;
     qCtx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    const { dw, dh, ox, oy } = fitRect(
-      img.width,
-      img.height,
-      CANVAS_SIZE,
-      CANVAS_SIZE,
-    );
+    const { dw, dh, ox, oy } = fitRect(img.width, img.height, CANVAS_SIZE, CANVAS_SIZE);
 
     sCtx.drawImage(img, ox, oy, dw, dh);
     const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     qCtx.putImageData(quantize(id, selColors), 0, 0);
+    baseQuantizedRef.current = qCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     setTextItems([]);
     setSelectedTextId(null);
@@ -592,6 +568,7 @@ export default function FourColorDesignStudio() {
     const changed = floodFillRegion(ctx, x, y, fillColor);
     if (!changed) return;
 
+    baseQuantizedRef.current = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     setUsageVersion((v) => v + 1);
     setLastEdit(`Flood filled region to ${fillColor.name} at ${x}, ${y}.`);
   }
