@@ -26,19 +26,23 @@ type TextOverlay = {
 };
 
 const INVENTORY_COLORS: InventoryColor[] = [
-  { id: "purple", name: "Purple", hex: "#7B54B9" },
-  { id: "beige", name: "Beige", hex: "#BEA586" },
-  { id: "bright-green", name: "Bright green", hex: "#2AB75C" },
-  { id: "olive", name: "Olive", hex: "#47634C" },
-  { id: "brown", name: "Brown", hex: "#663227" },
-  { id: "yellow", name: "Yellow", hex: "#ECDC2C" },
-  { id: "blue", name: "Blue", hex: "#2034CD" },
-  { id: "light-blue", name: "Light blue", hex: "#5176C6" },
-  { id: "red", name: "Red", hex: "#D43133" },
-  { id: "white", name: "White", hex: "#FFFFFF" },
-  { id: "black", name: "Black", hex: "#000000" },
+  { id: "overture-purple", name: "Purple", hex: "#6F52A3" },
+
+  { id: "elegoo-beige", name: "Beige", hex: "#BEA586" },
+  { id: "elegoo-brown", name: "Brown", hex: "#6B4A2E" },
+  { id: "elegoo-yellow", name: "Yellow", hex: "#E5C529" },
+  { id: "elegoo-blue", name: "Blue", hex: "#2F5DA8" },
+  { id: "elegoo-red", name: "Red", hex: "#B23A32" },
+  { id: "elegoo-white", name: "White", hex: "#E9E9E7" },
+  { id: "elegoo-black", name: "Black", hex: "#1E1E20" },
+  { id: "elegoo-green", name: "Green", hex: "#2F7A4A" },
+
+  { id: "ujoybio-cobalt-blue", name: "Cobalt blue", hex: "#1F4FBF" },
+  { id: "ujoybio-christmas-green", name: "Christmas green", hex: "#1F6A3A" },
+  { id: "ujoybio-orange", name: "Orange", hex: "#D96A1D" },
+  { id: "ujoybio-yellow", name: "Yellow (bright)", hex: "#F2D13A" },
+
   { id: "silver", name: "Silver", hex: "#8D8F9B" },
-  { id: "orange", name: "Orange", hex: "#F0824F" },
 ];
 
 const CANVAS_SIZE = 800;
