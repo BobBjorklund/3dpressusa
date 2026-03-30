@@ -1,13 +1,13 @@
 "use client";
 
 import { ChangeEvent, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
-
+import JSZip from "jszip";
 type InventoryColor = {
   id: string;
   name: string;
   hex: string;
 };
-
+const REG_MARK_SIZE_MM = 2; // tiny corner square
 type Rgb = {
   r: number;
   g: number;
@@ -25,6 +25,98 @@ type TextOverlay = {
   weight: string;
 };
 
+function getFloodRegionMask(
+  ctx: CanvasRenderingContext2D,
+  startX: number,
+  startY: number
+): Uint8Array {
+  const { width, height } = ctx.canvas;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const data = imageData.data;
+
+  const startIndex = (startY * width + startX) * 4;
+
+  const target = [
+    data[startIndex],
+    data[startIndex + 1],
+    data[startIndex + 2],
+    data[startIndex + 3],
+  ];
+
+  const visited = new Uint8Array(width * height);
+  const stack: number[] = [startX, startY];
+
+  while (stack.length > 0) {
+    const y = stack.pop()!;
+    const x = stack.pop()!;
+    const idx = y * width + x;
+
+    if (visited[idx]) continue;
+    visited[idx] = 1;
+
+    const i = idx * 4;
+
+    if (
+      data[i] !== target[0] ||
+      data[i + 1] !== target[1] ||
+      data[i + 2] !== target[2] ||
+      data[i + 3] !== target[3]
+    ) continue;
+
+    if (x > 0) stack.push(x - 1, y);
+    if (x < width - 1) stack.push(x + 1, y);
+    if (y > 0) stack.push(x, y - 1);
+    if (y < height - 1) stack.push(x, y + 1);
+  }
+
+  return visited;
+}
+type Lab = { l: number; a: number; b: number };
+
+function rgbToXyz({ r, g, b }: Rgb) {
+  const srgb = [r, g, b].map((v) => {
+    v /= 255;
+    return v > 0.04045
+      ? Math.pow((v + 0.055) / 1.055, 2.4)
+      : v / 12.92;
+  });
+
+  const [R, G, B] = srgb;
+
+  return {
+    x: R * 0.4124 + G * 0.3576 + B * 0.1805,
+    y: R * 0.2126 + G * 0.7152 + B * 0.0722,
+    z: R * 0.0193 + G * 0.1192 + B * 0.9505,
+  };
+}
+
+function xyzToLab({ x, y, z }: { x: number; y: number; z: number }): Lab {
+  const refX = 0.95047;
+  const refY = 1.00000;
+  const refZ = 1.08883;
+
+  const f = (t: number) =>
+    t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+
+  const fx = f(x / refX);
+  const fy = f(y / refY);
+  const fz = f(z / refZ);
+
+  return {
+    l: 116 * fy - 16,
+    a: 500 * (fx - fy),
+    b: 200 * (fy - fz),
+  };
+}
+
+function rgbToLab(rgb: Rgb): Lab {
+  return xyzToLab(rgbToXyz(rgb));
+}
+
+function labDist(a: Lab, b: Lab): number {
+  return (a.l - b.l) ** 2 + (a.a - b.a) ** 2 + (a.b - b.b) ** 2;
+}
+
 const INVENTORY_COLORS: InventoryColor[] = [
   { id: "overture-purple", name: "Purple", hex: "#6F52A3" },
 
@@ -39,16 +131,17 @@ const INVENTORY_COLORS: InventoryColor[] = [
   { id: "elegoo-black", name: "Black", hex: "#1E1E20" },
   { id: "elegoo-green", name: "Green", hex: "#2F7A4A" },
   { id: "ujoybio-christmas-green", name: "Christmas green", hex: "#1F6A3A" },
-  { id: "eagles-green", name: "E-A-G-L-E-S", hex:"#0F3B2F"},
-  
+  { id: "eagles-green", name: "E-A-G-L-E-S", hex: "#0F3B2F" },
+
   { id: "ujoybio-orange", name: "Orange", hex: "#D96A1D" },
-  
+
 
   { id: "silver", name: "Silver", hex: "#B3B5BA" },
 ];
 
 const CANVAS_SIZE = 800;
 const MAX_SELECTED = 4;
+const TILE_SIZE_MM = 101.6;
 const DEFAULT_TEXT = {
   value: "",
   x: CANVAS_SIZE / 2,
@@ -83,11 +176,13 @@ function colorDist(a: Rgb, b: Rgb): number {
 }
 
 function nearest(rgb: Rgb, palette: InventoryColor[]): InventoryColor {
+  const lab = rgbToLab(rgb);
+
   let best = palette[0];
   let bestD = Infinity;
 
   for (const c of palette) {
-    const d = colorDist(rgb, hexToRgb(c.hex));
+    const d = labDist(lab, rgbToLab(hexToRgb(c.hex)));
     if (d < bestD) {
       best = c;
       bestD = d;
@@ -367,26 +462,198 @@ export default function FourColorDesignStudio() {
     ctx.restore();
   }
 
-  function redrawQuantizedCanvas(options?: { ghostDraftAt?: { x: number; y: number } | null }): void {
+  function redrawQuantizedCanvas(options?: { ghostDraftAt?: { x: number; y: number } | null }) {
     const qc = qRef.current;
     if (!qc) return;
 
-    const qCtx = qc.getContext("2d");
-    if (!qCtx) return;
+    const ctx = qc.getContext("2d");
+    if (!ctx) return;
 
-    drawBaseOnto(qCtx);
+    drawBaseOnto(ctx);
 
+    // 🔥 ADD THIS BLOCK
+    if (toolMode === "fill" && hoverPoint && fillColor) {
+      const mask = getFloodRegionMask(ctx, hoverPoint.x, hoverPoint.y);
+
+      const overlay = ctx.getImageData(0, 0, qc.width, qc.height);
+      const d = overlay.data;
+
+      for (let i = 0; i < mask.length; i++) {
+        if (mask[i]) {
+          const idx = i * 4;
+          d[idx] = 255;     // highlight color (tweakable)
+          d[idx + 1] = 255;
+          d[idx + 2] = 255;
+          d[idx + 3] = 80;  // transparency
+        }
+      }
+
+      ctx.putImageData(overlay, 0, 0);
+    }
+
+    // existing text rendering
     for (const item of textItems) {
-      drawTextItem(qCtx, item, { selected: item.id === selectedTextId });
+      drawTextItem(ctx, item, { selected: item.id === selectedTextId });
     }
 
     if (options?.ghostDraftAt && toolMode === "text" && textDraft.value.trim()) {
       drawTextItem(
-        qCtx,
+        ctx,
         { ...textDraft, x: options.ghostDraftAt.x, y: options.ghostDraftAt.y },
-        { ghost: true },
+        { ghost: true }
       );
     }
+  }
+
+  function buildExportCanvas(): HTMLCanvasElement | null {
+    if (typeof document === "undefined") return null;
+
+    const exportCanvas = document.createElement("canvas");
+    exportCanvas.width = CANVAS_SIZE;
+    exportCanvas.height = CANVAS_SIZE;
+
+    const exportCtx = exportCanvas.getContext("2d");
+    if (!exportCtx) return null;
+
+    drawBaseOnto(exportCtx);
+
+    for (const item of textItems) {
+      drawTextItem(exportCtx, item);
+    }
+
+    return exportCanvas;
+  }
+
+  async function downloadLayeredSvgZip(): Promise<void> {
+    const exportCanvas = buildExportCanvas();
+    if (!exportCanvas) return;
+
+    const exportCtx = exportCanvas.getContext("2d");
+    if (!exportCtx) return;
+
+    const { data, width, height } = exportCtx.getImageData(
+      0,
+      0,
+      exportCanvas.width,
+      exportCanvas.height,
+    );
+
+    const mmPerPixel = TILE_SIZE_MM / CANVAS_SIZE;
+    const zip = new JSZip();
+
+    const escapeXml = (value: string) =>
+      value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&apos;");
+
+    const safeName = (imgName || "design")
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[^a-z0-9-_]+/gi, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    const usedColors = selColors.filter((color) => {
+      const rgb = hexToRgb(color.hex);
+      for (let i = 0; i < data.length; i += 4) {
+        if (
+          data[i + 3] > 0 &&
+          data[i] === rgb.r &&
+          data[i + 1] === rgb.g &&
+          data[i + 2] === rgb.b
+        ) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (usedColors.length === 0) {
+      setLastEdit("No used colors found to export.");
+      return;
+    }
+
+    for (const color of usedColors) {
+      const rgb = hexToRgb(color.hex);
+      const svgParts: string[] = [];
+
+      svgParts.push(
+        `<?xml version="1.0" encoding="UTF-8"?>`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="4in" height="4in" viewBox="0 0 ${TILE_SIZE_MM} ${TILE_SIZE_MM}" shape-rendering="crispEdges">`,
+        `<title>${escapeXml(`${safeName}-${color.id}`)}</title>`,
+        `<desc>${escapeXml(`Single-color layer export for ${color.name} (${color.hex}).`)}</desc>`,
+      );
+      svgParts.push(
+        `<rect x="0" y="${(TILE_SIZE_MM - REG_MARK_SIZE_MM).toFixed(4)}" width="${REG_MARK_SIZE_MM}" height="${REG_MARK_SIZE_MM}" fill="${color.hex}"/>`
+      );
+      for (let y = 0; y < height; y += 1) {
+        let runStart = -1;
+
+        for (let x = 0; x <= width; x += 1) {
+          const isEnd = x === width;
+          let matches = false;
+
+          if (!isEnd) {
+            const idx = (y * width + x) * 4;
+            matches =
+              data[idx + 3] > 0 &&
+              data[idx] === rgb.r &&
+              data[idx + 1] === rgb.g &&
+              data[idx + 2] === rgb.b;
+          }
+
+          if (matches && runStart < 0) {
+            runStart = x;
+          }
+
+          if ((!matches || isEnd) && runStart >= 0) {
+            const runWidth = x - runStart;
+
+            svgParts.push(
+              `<rect x="${(runStart * mmPerPixel).toFixed(4)}" y="${(y * mmPerPixel).toFixed(4)}" width="${(runWidth * mmPerPixel).toFixed(4)}" height="${mmPerPixel.toFixed(4)}" fill="#000000"/>`,
+            );
+
+            runStart = -1;
+          }
+        }
+      }
+
+      svgParts.push(`</svg>`);
+
+      zip.file(
+        `${safeName}-${color.id}.svg`,
+        svgParts.join(""),
+      );
+    }
+
+    zip.file(
+      `${safeName}-README.txt`,
+      [
+        `Design: ${safeName}`,
+        `Tile size: 4in x 4in`,
+        `Exported layers: ${usedColors.length}`,
+        ``,
+        `Files:`,
+        ...usedColors.map((c, i) => `${i + 1}. ${safeName}-${c.id}.svg  (${c.name} ${c.hex})`),
+        ``,
+        `Import each SVG separately into Bambu Studio and align them.`,
+      ].join("\n"),
+    );
+
+    const blob = await zip.generateAsync({ type: "blob" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${safeName || "design"}-svg-layers.zip`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+
+    setLastEdit(`Layered SVG zip exported: ${safeName || "design"}-svg-layers.zip`);
   }
 
   useEffect(() => {
@@ -1216,18 +1483,38 @@ export default function FourColorDesignStudio() {
 
             <button
               type="button"
+              onClick={() => void downloadLayeredSvgZip()}
+              style={{
+                marginTop: "12px",
+                width: "100%",
+                background: "#f1f5f9",
+                color: "#0f172a",
+                fontWeight: 800,
+                fontSize: "13px",
+                letterSpacing: "0.06em",
+                padding: "12px 14px",
+                borderRadius: "12px",
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              FINALIZE PRINT
+            </button>
+
+            <button
+              type="button"
               onClick={resetQuantizedImage}
               disabled={!img}
               style={{
                 marginTop: "12px",
                 width: "100%",
-                background: img ? "#f1f5f9" : "rgba(255,255,255,0.08)",
-                color: img ? "#0f172a" : "#64748b",
+                background: "rgba(255,255,255,0.08)",
+                color: img ? "#f1f5f9" : "#64748b",
                 fontWeight: 700,
                 fontSize: "13px",
                 padding: "10px 14px",
                 borderRadius: "12px",
-                border: "none",
+                border: "1px solid rgba(255,255,255,0.08)",
                 cursor: img ? "pointer" : "not-allowed",
               }}
             >
