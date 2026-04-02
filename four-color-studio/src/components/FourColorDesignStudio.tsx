@@ -2,10 +2,52 @@
 
 import { ChangeEvent, MouseEvent, useEffect, useMemo, useRef, useState } from "react";
 import JSZip from "jszip";
+
+type ToolMode = "select" | "fill" | "text" | "rect" | "circle" | "triangle";
+type ShapeItem =
+  | {
+    id: string;
+    kind: "rect";
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    colorId: string;
+    rotation: number;
+    z: number;
+  }
+  | {
+    id: string;
+    kind: "circle";
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    colorId: string;
+    z: number;
+  }
+  | {
+    id: string;
+    kind: "triangle";
+    x: number;
+    y: number;
+    w: number;
+    h: number;
+    colorId: string;
+    rotation: number;
+    z: number;
+  };
 type InventoryColor = {
   id: string;
   name: string;
   hex: string;
+};
+type PaletteSuggestion = {
+  id: string;
+  label: string;
+  colorIds: string[];
+  previewDataUrl: string;
+  score: number;
 };
 const REG_MARK_SIZE_MM = 2; // tiny corner square
 type Rgb = {
@@ -13,7 +55,15 @@ type Rgb = {
   g: number;
   b: number;
 };
-
+const inputStyle = {
+  width: "100%",
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(255,255,255,0.10)",
+  color: "#f1f5f9",
+  borderRadius: "12px",
+  padding: "10px 12px",
+  outline: "none",
+};
 type TextOverlay = {
   id: string;
   value: string;
@@ -25,6 +75,74 @@ type TextOverlay = {
   weight: string;
 };
 
+function removeTinyRuns(imageData: ImageData, minRun = 1): ImageData {
+  const { width, height, data } = imageData;
+
+  for (let y = 0; y < height; y += 1) {
+    let runStart = 0;
+
+    for (let x = 1; x <= width; x += 1) {
+      const prevIdx = (y * width + (x - 1)) * 4;
+      const prevColor = `${data[prevIdx]},${data[prevIdx + 1]},${data[prevIdx + 2]},${data[prevIdx + 3]}`;
+
+      const currColor =
+        x < width
+          ? (() => {
+            const i = (y * width + x) * 4;
+            return `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
+          })()
+          : null;
+
+      if (x === width || currColor !== prevColor) {
+        const runLength = x - runStart;
+
+        if (runLength < minRun) {
+          const leftColor =
+            runStart > 0
+              ? (() => {
+                const i = (y * width + (runStart - 1)) * 4;
+                return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+              })()
+              : null;
+
+          const rightColor =
+            x < width
+              ? (() => {
+                const i = (y * width + x) * 4;
+                return [data[i], data[i + 1], data[i + 2], data[i + 3]];
+              })()
+              : leftColor;
+
+          const replacement = rightColor ?? leftColor;
+
+          if (replacement) {
+            for (let xx = runStart; xx < x; xx += 1) {
+              const i = (y * width + xx) * 4;
+              data[i] = replacement[0];
+              data[i + 1] = replacement[1];
+              data[i + 2] = replacement[2];
+              data[i + 3] = replacement[3];
+            }
+          }
+        }
+
+        runStart = x;
+      }
+    }
+  }
+
+  return imageData;
+}
+function dedupePaletteSuggestions(suggestions: PaletteSuggestion[]): PaletteSuggestion[] {
+  const seen = new Set<string>();
+
+  return suggestions.filter((s) => {
+    const key = [...s.colorIds].sort().join("|"); // order-independent
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
 function getFloodRegionMask(
   ctx: CanvasRenderingContext2D,
   startX: number,
@@ -139,17 +257,30 @@ const INVENTORY_COLORS: InventoryColor[] = [
   { id: "silver", name: "Silver", hex: "#B3B5BA" },
 ];
 
-const CANVAS_SIZE = 800;
-const MAX_SELECTED = 4;
+const MIN_FEATURE_MM = 0.2;
 const TILE_SIZE_MM = 101.6;
+const CANVAS_SIZE = Math.round(TILE_SIZE_MM / MIN_FEATURE_MM); // 508
+const GRID_STEP = 1; // one canvas pixel = one printable feature
+
+function snapToGrid(value: number): number {
+  return Math.round(value / GRID_STEP) * GRID_STEP;
+}
+
+function snapPoint(point: { x: number; y: number }) {
+  return {
+    x: snapToGrid(point.x),
+    y: snapToGrid(point.y),
+  };
+}
+const MAX_SELECTED = 4;
 const DEFAULT_TEXT = {
   value: "",
   x: CANVAS_SIZE / 2,
   y: CANVAS_SIZE / 2,
-  size: 96,
-  colorId: "elegoo-white",
+  size: 32,
+  colorId: "elegoo-black",
   fontFamily: "Arial",
-  weight: "700",
+  weight: "400",
 };
 
 function makeTextOverlay(partial?: Partial<TextOverlay>): TextOverlay {
@@ -223,7 +354,18 @@ function drawChecker(ctx: CanvasRenderingContext2D, w: number, h: number): void 
     }
   }
 }
-
+function drawShapeSelectionBox(
+  ctx: CanvasRenderingContext2D,
+  shape: ShapeItem,
+): void {
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.9)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 6]);
+  ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+  ctx.setLineDash([]);
+  ctx.restore();
+}
 function fitRect(sw: number, sh: number, tw: number, th: number) {
   const sr = sw / sh;
   const tr = tw / th;
@@ -252,8 +394,12 @@ function getCanvasPoint(e: MouseEvent<HTMLCanvasElement>, canvas: HTMLCanvasElem
   const scaleY = canvas.height / rect.height;
 
   return {
-    x: Math.max(0, Math.min(canvas.width - 1, Math.floor((e.clientX - rect.left) * scaleX))),
-    y: Math.max(0, Math.min(canvas.height - 1, Math.floor((e.clientY - rect.top) * scaleY))),
+    x: snapToGrid(
+      Math.max(0, Math.min(canvas.width - 1, Math.floor((e.clientX - rect.left) * scaleX)))
+    ),
+    y: snapToGrid(
+      Math.max(0, Math.min(canvas.height - 1, Math.floor((e.clientY - rect.top) * scaleY)))
+    ),
   };
 }
 
@@ -320,7 +466,89 @@ function floodFillRegion(
   return true;
 }
 
+function ColorChoiceButton({
+  color,
+  active,
+  disabled = false,
+  onClick,
+  compact = false,
+  subtitle,
+}: {
+  color: InventoryColor;
+  active: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  compact?: boolean;
+  subtitle?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: compact ? "8px" : "10px",
+        background: active ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
+        border: active ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.08)",
+        borderRadius: compact ? "12px" : "14px",
+        padding: compact ? "10px 12px" : "8px",
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.35 : 1,
+        color: "#f1f5f9",
+        minWidth: 0,
+        textAlign: "left",
+        transition: "all .15s",
+      }}
+    >
+      <span
+        style={{
+          width: compact ? "18px" : "100%",
+          height: compact ? "18px" : "36px",
+          minWidth: compact ? "18px" : undefined,
+          borderRadius: compact ? "6px" : "10px",
+          background: color.hex,
+          border: "1px solid rgba(0,0,0,0.15)",
+          flexShrink: 0,
+          display: "block",
+          marginBottom: compact ? 0 : "6px",
+        }}
+      />
+      <span style={{ minWidth: 0, flex: 1 }}>
+        <span
+          style={{
+            display: "block",
+            fontSize: compact ? "13px" : "11px",
+            fontWeight: 600,
+            color: "#f1f5f9",
+            lineHeight: 1.2,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {color.name}
+        </span>
+        <span
+          style={{
+            display: "block",
+            fontSize: "10px",
+            color: "#64748b",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {subtitle ?? color.hex}
+        </span>
+      </span>
+    </button>
+  );
+}
 export default function FourColorDesignStudio() {
+  const [showPaletteSuggestions, setShowPaletteSuggestions] = useState(false);
+  const [hasDismissedPaletteSuggestions, setHasDismissedPaletteSuggestions] = useState(false);
   const [selIds, setSelIds] = useState<string[]>(["elegoo-black", "elegoo-white", "elegoo-red", "elegoo-blue"]);
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [imgName, setImgName] = useState<string>("");
@@ -331,9 +559,16 @@ export default function FourColorDesignStudio() {
   const [textDraft, setTextDraft] = useState<TextOverlay>(makeTextOverlay());
   const [textItems, setTextItems] = useState<TextOverlay[]>([]);
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
-  const [toolMode, setToolMode] = useState<"fill" | "text">("fill");
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null);
-
+  const [toolMode, setToolMode] = useState<ToolMode>("fill");
+  const [shapeColorId, setShapeColorId] = useState<string>("elegoo-red");
+  const [shapes, setShapes] = useState<ShapeItem[]>([]);
+  const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
+  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
+  const [draftShape, setDraftShape] = useState<ShapeItem | null>(null);
+  const [draggingShapeId, setDraggingShapeId] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
+  const [paletteSuggestions, setPaletteSuggestions] = useState<PaletteSuggestion[]>([]);
   const srcRef = useRef<HTMLCanvasElement | null>(null);
   const qRef = useRef<HTMLCanvasElement | null>(null);
   const baseQuantizedRef = useRef<ImageData | null>(null);
@@ -342,7 +577,169 @@ export default function FourColorDesignStudio() {
     () => INVENTORY_COLORS.filter((c) => selIds.includes(c.id)),
     [selIds],
   );
+  function hitTestShape(x: number, y: number): ShapeItem | null {
+    for (let i = shapes.length - 1; i >= 0; i -= 1) {
+      const shape = shapes[i];
 
+      if (
+        x >= shape.x &&
+        x <= shape.x + shape.w &&
+        y >= shape.y &&
+        y <= shape.y + shape.h
+      ) {
+        return shape;
+      }
+    }
+
+    return null;
+  }
+  function drawShapeItem(
+    ctx: CanvasRenderingContext2D,
+    shape: ShapeItem,
+    options?: { ghost?: boolean; selected?: boolean }
+  ): void {
+    const color = selColors.find((c) => c.id === shape.colorId);
+    if (!color) return;
+
+    ctx.save();
+
+    if (options?.ghost) {
+      ctx.globalAlpha = 0.45;
+    }
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = color.hex;
+    ctx.strokeStyle = "rgba(255,255,255,0.9)";
+    ctx.lineWidth = 2;
+
+    if (shape.kind === "rect") {
+      ctx.fillRect(shape.x, shape.y, shape.w, shape.h);
+
+      if (options?.selected) {
+        ctx.setLineDash([8, 6]);
+        ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+        ctx.setLineDash([]);
+      }
+    }
+
+    if (shape.kind === "circle") {
+      ctx.beginPath();
+      ctx.ellipse(
+        shape.x + shape.w / 2,
+        shape.y + shape.h / 2,
+        Math.abs(shape.w / 2),
+        Math.abs(shape.h / 2),
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      if (options?.selected) {
+        ctx.setLineDash([8, 6]);
+        ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+        ctx.setLineDash([]);
+      }
+    }
+
+    if (shape.kind === "triangle") {
+      ctx.beginPath();
+      ctx.moveTo(shape.x + shape.w / 2, shape.y);
+      ctx.lineTo(shape.x + shape.w, shape.y + shape.h);
+      ctx.lineTo(shape.x, shape.y + shape.h);
+      ctx.closePath();
+      ctx.fill();
+
+      if (options?.selected) {
+        ctx.setLineDash([8, 6]);
+        ctx.strokeRect(shape.x, shape.y, shape.w, shape.h);
+        ctx.setLineDash([]);
+      }
+    }
+
+    ctx.restore();
+  }
+  function rankInventoryColorsFromImage(
+    imageData: ImageData,
+    inventory: InventoryColor[],
+  ): { colorId: string; count: number }[] {
+    const counts = new Map<string, number>();
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] === 0) continue;
+
+      const winner = nearest(
+        { r: data[i], g: data[i + 1], b: data[i + 2] },
+        inventory,
+      );
+
+      counts.set(winner.id, (counts.get(winner.id) ?? 0) + 1);
+    }
+
+    return [...counts.entries()]
+      .map(([colorId, count]) => ({ colorId, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  function buildPaletteSuggestionsFromRanked(
+    ranked: { colorId: string; count: number }[],
+  ): { label: string; colorIds: string[] }[] {
+    const top = ranked.map((x) => x.colorId);
+
+    const uniqueTop4 = top.slice(0, 4);
+
+    const balanced = top.slice(0, 6).filter((id, i, arr) => arr.indexOf(id) === i).slice(0, 4);
+
+    const boldSeed = top.slice(0, 8);
+    const bold: string[] = [];
+
+    for (const id of boldSeed) {
+      if (bold.length === 0) {
+        bold.push(id);
+        continue;
+      }
+
+      if (!bold.includes(id)) {
+        bold.push(id);
+      }
+
+      if (bold.length === 4) break;
+    }
+
+    return [
+      { label: "Closest match", colorIds: uniqueTop4 },
+      { label: "Balanced", colorIds: balanced.length === 4 ? balanced : uniqueTop4 },
+      { label: "Bold", colorIds: bold.length === 4 ? bold : uniqueTop4 },
+    ];
+  }
+
+  function makePalettePreviewDataUrl(
+    img: HTMLImageElement,
+    palette: InventoryColor[],
+    bgHex: string,
+    size = 220,
+  ): string | null {
+    if (typeof document === "undefined") return null;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    drawChecker(ctx, size, size);
+    ctx.fillStyle = bgHex;
+    ctx.fillRect(0, 0, size, size);
+
+    const { dw, dh, ox, oy } = fitRect(img.width, img.height, size, size);
+    ctx.drawImage(img, ox, oy, dw, dh);
+
+    const id = ctx.getImageData(0, 0, size, size);
+    ctx.putImageData(quantize(id, palette), 0, 0);
+
+    return canvas.toDataURL("image/png");
+  }
   const bgColor = useMemo(
     () => INVENTORY_COLORS.find((c) => c.id === bgId) ?? INVENTORY_COLORS[10],
     [bgId],
@@ -389,7 +786,54 @@ export default function FourColorDesignStudio() {
       .filter((e) => e.pixels > 0)
       .sort((a, b) => b.pixels - a.pixels);
   }, [selColors, usageVersion]);
+  useEffect(() => {
+    if (!img) {
+      setPaletteSuggestions([]);
+      return;
+    }
 
+    if (selIds.length > 0) {
+      // optional: no-op if you want suggestions independent of current selected colors
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 160;
+    canvas.height = 160;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    drawChecker(ctx, 160, 160);
+    ctx.fillStyle = bgColor.hex;
+    ctx.fillRect(0, 0, 160, 160);
+
+    const { dw, dh, ox, oy } = fitRect(img.width, img.height, 160, 160);
+    ctx.drawImage(img, ox, oy, dw, dh);
+
+    const id = ctx.getImageData(0, 0, 160, 160);
+
+    const ranked = rankInventoryColorsFromImage(id, INVENTORY_COLORS);
+    const candidates = buildPaletteSuggestionsFromRanked(ranked);
+
+    const suggestions: PaletteSuggestion[] = candidates
+      .map((candidate, index) => {
+        const palette = INVENTORY_COLORS.filter((c) => candidate.colorIds.includes(c.id));
+        const previewDataUrl = makePalettePreviewDataUrl(img, palette, bgColor.hex, 220);
+
+        if (!previewDataUrl || palette.length !== 4) return null;
+
+        return {
+          id: `suggestion-${index}`,
+          label: candidate.label,
+          colorIds: candidate.colorIds,
+          previewDataUrl,
+          score: 100 - index,
+        };
+      })
+      .filter((x): x is PaletteSuggestion => Boolean(x));
+
+    setPaletteSuggestions(dedupePaletteSuggestions(suggestions));
+  }, [img, bgColor]);
   useEffect(() => {
     if (!selColors.some((c) => c.id === fillColorId) && selColors[0]) {
       setFillColorId(selColors[0].id);
@@ -412,9 +856,17 @@ export default function FourColorDesignStudio() {
     );
   }, [selColors, fillColorId, bgId, textDraft.colorId]);
 
+  function setToolModeSafe(next: ToolMode) {
+    setToolMode(next);
+
+    if (next !== "select") {
+      setSelectedShapeId(null);
+      setSelectedTextId(null);
+    }
+  }
   function drawBaseOnto(ctx: CanvasRenderingContext2D): void {
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-
+    ctx.imageSmoothingEnabled = false;
     if (baseQuantizedRef.current) {
       ctx.putImageData(baseQuantizedRef.current, 0, 0);
       return;
@@ -471,36 +923,49 @@ export default function FourColorDesignStudio() {
 
     drawBaseOnto(ctx);
 
-    // 🔥 ADD THIS BLOCK
     if (toolMode === "fill" && hoverPoint && fillColor) {
       const mask = getFloodRegionMask(ctx, hoverPoint.x, hoverPoint.y);
 
       const overlay = ctx.getImageData(0, 0, qc.width, qc.height);
       const d = overlay.data;
 
-      for (let i = 0; i < mask.length; i++) {
-        if (mask[i]) {
-          const idx = i * 4;
-          d[idx] = 255;     // highlight color (tweakable)
-          d[idx + 1] = 255;
-          d[idx + 2] = 255;
-          d[idx + 3] = 80;  // transparency
-        }
+      for (let i = 0; i < mask.length; i += 1) {
+        if (!mask[i]) continue;
+
+        const idx = i * 4;
+        d[idx] = 255;
+        d[idx + 1] = 255;
+        d[idx + 2] = 255;
+        d[idx + 3] = 80;
       }
 
       ctx.putImageData(overlay, 0, 0);
     }
 
-    // existing text rendering
+    for (const shape of [...shapes].sort((a, b) => a.z - b.z)) {
+      drawShapeItem(ctx, shape);
+    }
+
+    if (draftShape) {
+      drawShapeItem(ctx, draftShape, { ghost: true });
+    }
+
     for (const item of textItems) {
       drawTextItem(ctx, item, { selected: item.id === selectedTextId });
+    }
+
+    if (selectedShapeId) {
+      const selectedShape = shapes.find((shape) => shape.id === selectedShapeId);
+      if (selectedShape) {
+        drawShapeSelectionBox(ctx, selectedShape);
+      }
     }
 
     if (options?.ghostDraftAt && toolMode === "text" && textDraft.value.trim()) {
       drawTextItem(
         ctx,
         { ...textDraft, x: options.ghostDraftAt.x, y: options.ghostDraftAt.y },
-        { ghost: true }
+        { ghost: true },
       );
     }
   }
@@ -517,6 +982,10 @@ export default function FourColorDesignStudio() {
 
     drawBaseOnto(exportCtx);
 
+    for (const shape of [...shapes].sort((a, b) => a.z - b.z)) {
+      drawShapeItem(exportCtx, shape);
+    }
+
     for (const item of textItems) {
       drawTextItem(exportCtx, item);
     }
@@ -530,6 +999,9 @@ export default function FourColorDesignStudio() {
 
     const exportCtx = exportCanvas.getContext("2d");
     if (!exportCtx) return;
+    const exportImageData = exportCtx.getImageData(0, 0, exportCanvas.width, exportCanvas.height);
+    const cleaned = removeTinyRuns(exportImageData, 1);
+    exportCtx.putImageData(cleaned, 0, 0);
 
     const { data, width, height } = exportCtx.getImageData(
       0,
@@ -695,6 +1167,8 @@ export default function FourColorDesignStudio() {
 
     setUsageVersion((v) => v + 1);
     setLastEdit("No manual edits yet.");
+
+
   }, [img, selColors, bgColor]);
 
   function toggleColor(id: string): void {
@@ -717,6 +1191,8 @@ export default function FourColorDesignStudio() {
     image.onload = () => {
       setImg(image);
       setImgName(file.name);
+      setShowPaletteSuggestions(true);
+      setHasDismissedPaletteSuggestions(false);
       URL.revokeObjectURL(url);
     };
 
@@ -813,19 +1289,80 @@ export default function FourColorDesignStudio() {
 
     return null;
   }
-
-  function onQuantizedCanvasClick(e: MouseEvent<HTMLCanvasElement>): void {
+  function onQuantizedCanvasMouseDown(e: MouseEvent<HTMLCanvasElement>): void {
     const canvas = qRef.current;
     if (!canvas) return;
 
     const { x, y } = getCanvasPoint(e, canvas);
+
+    if (toolMode === "select") {
+      const hit = hitTestShape(x, y);
+
+      if (hit) {
+        setSelectedShapeId(hit.id);
+        setDraggingShapeId(hit.id);
+        setDragOffset({
+          x: x - hit.x,
+          y: y - hit.y,
+        });
+        return;
+      }
+
+      setSelectedShapeId(null);
+      return;
+    }
+
+    if (toolMode === "rect" || toolMode === "circle" || toolMode === "triangle") {
+      setDragStart({ x, y });
+
+      setDraftShape({
+        id: `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        kind: toolMode,
+        x,
+        y,
+        w: 0,
+        h: 0,
+        colorId: shapeColorId,
+        rotation: 0,
+        z: Date.now(),
+      });
+    }
+  }
+
+  function onQuantizedCanvasMouseUp(): void {
+    if (draftShape) {
+      setShapes((cur) => [...cur, draftShape]);
+      setSelectedShapeId(draftShape.id);
+    }
+
+    setDraftShape(null);
+    setDragStart(null);
+    setDraggingShapeId(null);
+    setDragOffset(null);
+  }
+  function onQuantizedCanvasClick(e: MouseEvent<HTMLCanvasElement>): void {
+    const canvas = qRef.current;
+    if (!canvas) return;
+    const { x, y } = getCanvasPoint(e, canvas);
+    if (toolMode === "select") {
+      const shapeHit = hitTestShape(x, y);
+      const textHit = hitTestText(x, y);
+
+      if (!shapeHit && !textHit) {
+        setSelectedShapeId(null);
+        setSelectedTextId(null);
+        setLastEdit("Cleared selection.");
+        return;
+      }
+    }
+
 
     if (toolMode === "text") {
       const hit = hitTestText(x, y);
       if (hit) {
         setSelectedTextId(hit.id);
         setTextDraft(hit);
-        setLastEdit(`Selected text \"${hit.value}\".`);
+        setLastEdit(`Selected text "${hit.value}".`);
         return;
       }
 
@@ -833,33 +1370,161 @@ export default function FourColorDesignStudio() {
       return;
     }
 
-    if (!fillColor) return;
+    if (toolMode !== "fill" || !fillColor) return;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const cleanCanvas = buildExportCanvas();
+    if (!cleanCanvas) return;
 
-    const changed = floodFillRegion(ctx, x, y, fillColor);
+    const cleanCtx = cleanCanvas.getContext("2d");
+    if (!cleanCtx) return;
+
+    const changed = floodFillRegion(cleanCtx, x, y, fillColor);
     if (!changed) return;
 
-    baseQuantizedRef.current = ctx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+    baseQuantizedRef.current = cleanCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     setUsageVersion((v) => v + 1);
     setLastEdit(`Flood filled region to ${fillColor.name} at ${x}, ${y}.`);
   }
+  function normalizeRect(
+    a: { x: number; y: number },
+    b: { x: number; y: number }
+  ) {
+    const x = snapToGrid(Math.min(a.x, b.x));
+    const y = snapToGrid(Math.min(a.y, b.y));
+    const w = Math.max(1, snapToGrid(Math.abs(b.x - a.x)));
+    const h = Math.max(1, snapToGrid(Math.abs(b.y - a.y)));
 
+    return { x, y, w, h };
+  }
   function onQuantizedCanvasMove(e: MouseEvent<HTMLCanvasElement>): void {
     const canvas = qRef.current;
     if (!canvas) return;
-    setHoverPoint(getCanvasPoint(e, canvas));
+
+    const { x, y } = getCanvasPoint(e, canvas);
+
+    if (
+      dragStart &&
+      draftShape &&
+      (toolMode === "rect" || toolMode === "circle" || toolMode === "triangle")
+    ) {
+      const norm = normalizeRect(dragStart, { x, y });
+
+      setDraftShape({
+        ...draftShape,
+        ...norm,
+      });
+
+      return;
+    }
+
+    if (toolMode === "select" && draggingShapeId && dragOffset) {
+      setShapes((cur) =>
+        cur.map((shape) =>
+          shape.id === draggingShapeId
+            ? {
+              ...shape,
+              x: x - dragOffset.x,
+              y: y - dragOffset.y,
+            }
+            : shape,
+        ),
+      );
+      return;
+    }
+
+    setHoverPoint({ x, y });
   }
 
   function onQuantizedCanvasLeave(): void {
     setHoverPoint(null);
+    setDraggingShapeId(null);
+    setDragOffset(null);
+  }
+  function updateSelectedShape(updater: (shape: ShapeItem) => ShapeItem): void {
+    if (!selectedShapeId) return;
+
+    setShapes((cur) =>
+      cur.map((shape) => (shape.id === selectedShapeId ? updater(shape) : shape)),
+    );
   }
 
   useEffect(() => {
     redrawQuantizedCanvas({ ghostDraftAt: hoverPoint });
-  }, [hoverPoint, textItems, selectedTextId, textDraft, toolMode, img, selColors, bgColor]);
+  }, [
+    hoverPoint,
+    textItems,
+    selectedTextId,
+    textDraft,
+    toolMode,
+    img,
+    selColors,
+    bgColor,
+    draftShape,
+    shapes,
+    selectedShapeId,
+  ]);
 
+  const selectedShape = useMemo(
+    () => shapes.find((shape) => shape.id === selectedShapeId) ?? null,
+    [shapes, selectedShapeId],
+  );
+  function getActiveEditableColorId(): string | null {
+    if (selectedShape) return selectedShape.colorId;
+    if (selectedText) return selectedText.colorId;
+
+    if (toolMode === "text") {
+      return textDraft.colorId;
+    }
+
+    if (toolMode === "rect" || toolMode === "circle" || toolMode === "triangle") {
+      return shapeColorId;
+    }
+
+    if (toolMode === "fill") {
+      return fillColorId;
+    }
+
+    return selColors[0]?.id ?? null;
+  }
+
+  function setActiveEditableColorId(colorId: string): void {
+    if (selectedShape) {
+      updateSelectedShape((shape) => ({ ...shape, colorId }));
+      return;
+    }
+
+    if (selectedText) {
+      updateSelectedText((item) => ({ ...item, colorId }));
+      setTextDraft((cur) => ({ ...cur, colorId }));
+      return;
+    }
+
+    if (toolMode === "text") {
+      setTextDraft((cur) => ({ ...cur, colorId }));
+      return;
+    }
+
+    if (toolMode === "rect" || toolMode === "circle" || toolMode === "triangle") {
+      setShapeColorId(colorId);
+      return;
+    }
+
+    if (toolMode === "fill") {
+      setFillColorId(colorId);
+      return;
+    }
+  }
+
+  function getActiveColorLabel(): string {
+    if (selectedShape) return "Selected shape color";
+    if (selectedText) return "Selected text color";
+
+    if (toolMode === "text") return "Text color";
+    if (toolMode === "rect" || toolMode === "circle" || toolMode === "triangle") return "Shape color";
+    if (toolMode === "fill") return "Fill color";
+
+    return "Active color";
+  }
   const s = {
     wrap: {
       minHeight: "100vh",
@@ -982,111 +1647,75 @@ export default function FourColorDesignStudio() {
       />
       <div style={s.grid}>
         <aside style={s.aside}>
-          <div style={{ marginBottom: "16px" }}>
-            <div style={s.eyebrow}>Inventory-locked builder</div>
-            <h1 style={s.h1}>Four-color design studio</h1>
-            <p style={{ fontSize: "13px", color: "#94a3b8", lineHeight: 1.6, margin: 0 }}>
-              Select up to 4 inventory colors. Upload an image and it&apos;ll be hard-mapped to your palette.
-              Add repair fills or editable text using only selected inventory colors.
-            </p>
-          </div>
-
-          <div style={s.subSection}>
-            <div style={s.subLabel}>Step 1 · choose up to 4 colors</div>
-            <div style={s.colorGrid}>
-              {INVENTORY_COLORS.map((c) => {
-                const active = selIds.includes(c.id);
-                const disabled = !active && selIds.length >= MAX_SELECTED;
-
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => toggleColor(c.id)}
-                    disabled={disabled}
-                    style={{
-                      background: active ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
-                      border: active ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "14px",
-                      padding: "8px",
-                      cursor: disabled ? "not-allowed" : "pointer",
-                      opacity: disabled ? 0.35 : 1,
-                      textAlign: "left" as const,
-                      transition: "all .15s",
-                      minWidth: 0,
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "36px",
-                        borderRadius: "10px",
-                        background: c.hex,
-                        border: "1px solid rgba(0,0,0,0.12)",
-                        marginBottom: "6px",
-                      }}
-                    />
-                    <div style={{ fontSize: "11px", fontWeight: 600, color: "#f1f5f9", lineHeight: 1.2 }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: "10px", color: "#64748b" }}>{c.hex}</div>
-                  </button>
-                );
-              })}
-            </div>
-            <div
+          <div style={{ display: "grid", gap: "12px" }}>
+            <label
               style={{
-                marginTop: "10px",
-                fontSize: "11px",
-                color: "#64748b",
-                display: "flex",
-                gap: "8px",
-                flexWrap: "wrap" as const,
+                display: "block",
+                cursor: "pointer",
               }}
             >
-              <span>{selColors.length} / 4 selected</span>
-              <span>·</span>
-              <span>No gradients</span>
-              <span>·</span>
-              <span>No off-palette pixels</span>
-            </div>
-          </div>
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={onUpload}
+              />
+              <span
+                style={{
+                  display: "block",
+                  width: "100%",
+                  background: "#f1f5f9",
+                  color: "#0f172a",
+                  fontWeight: 800,
+                  fontSize: "13px",
+                  letterSpacing: "0.04em",
+                  padding: "12px 14px",
+                  borderRadius: "12px",
+                  textAlign: "center",
+                }}
+              >
+                UPLOAD IMAGE
+              </span>
+            </label>
 
-          <div style={s.subSection}>
-            <div style={s.subLabel}>Step 2 · background color</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              {selColors.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setBgId(c.id)}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "10px",
-                    background: bgId === c.id ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
-                    border: bgId === c.id ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    color: "#f1f5f9",
-                    transition: "all .15s",
-                    minWidth: 0,
-                  }}
-                >
-                  <span
-                    style={{
-                      width: "18px",
-                      height: "18px",
-                      borderRadius: "6px",
-                      background: c.hex,
-                      border: "1px solid rgba(0,0,0,0.15)",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
-                </button>
-              ))}
+            <div style={s.subSection}>
+              <div style={s.subLabel}>Palette</div>
+
+              <div style={s.colorGrid}>
+                {INVENTORY_COLORS.map((c) => {
+                  const active = selIds.includes(c.id);
+                  const disabled = !active && selIds.length >= MAX_SELECTED;
+                  const isBackground = bgId === c.id && active;
+
+                  return (
+                    <ColorChoiceButton
+                      key={c.id}
+                      color={c}
+                      active={active}
+                      disabled={disabled}
+                      onClick={() => toggleColor(c.id)}
+                      subtitle={isBackground ? "Background" : c.hex}
+                    />
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "10px",
+                  fontSize: "11px",
+                  color: "#64748b",
+                  display: "flex",
+                  gap: "8px",
+                  flexWrap: "wrap" as const,
+                }}
+              >
+                <span>{selColors.length} / 4 selected</span>
+                <span>·</span>
+                <span>No gradients</span>
+                <span>·</span>
+                <span>No off-palette pixels</span>
+              </div>
             </div>
           </div>
         </aside>
@@ -1144,7 +1773,12 @@ export default function FourColorDesignStudio() {
                 <div style={s.canvasWrap}>
                   <canvas
                     ref={srcRef}
-                    style={{ width: "100%", aspectRatio: "1 / 1", display: "block" }}
+                    style={{
+                      width: "100%",
+                      aspectRatio: "1 / 1",
+                      display: "block",
+                      imageRendering: "pixelated",
+                    }}
                   />
                 </div>
               </div>
@@ -1157,9 +1791,11 @@ export default function FourColorDesignStudio() {
                 <div style={s.canvasWrap}>
                   <canvas
                     ref={qRef}
-                    onClick={onQuantizedCanvasClick}
+                    onMouseDown={onQuantizedCanvasMouseDown}
                     onMouseMove={onQuantizedCanvasMove}
+                    onMouseUp={onQuantizedCanvasMouseUp}
                     onMouseLeave={onQuantizedCanvasLeave}
+                    onClick={onQuantizedCanvasClick}
                     style={{
                       width: "100%",
                       aspectRatio: "1 / 1",
@@ -1171,416 +1807,482 @@ export default function FourColorDesignStudio() {
               </div>
             </div>
           </div>
-
-          <div style={s.section}>
-            <div style={{ ...s.eyebrow, marginBottom: "14px" }}>Upload image</div>
-            <div style={{ ...s.subSection, marginBottom: 0 }}>
-              <div style={s.subLabel}>Import source artwork</div>
-              <label style={s.uploadLabel}>
-                <span style={{ fontSize: "13px", fontWeight: 600, color: "#f1f5f9" }}>
-                  Choose source image
-                </span>
-                <span style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.55 }}>
-                  PNG, JPG, logo, or mockup. It&apos;ll be square-fitted and hard-mapped to selected inventory colors only.
-                </span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={onUpload}
-                />
-                <span style={s.chooseBtn}>Choose image</span>
-              </label>
-              <div style={{ marginTop: "10px", fontSize: "12px", color: "#64748b" }}>
-                {imgName || "No file loaded yet."}
-              </div>
-            </div>
-          </div>
         </main>
 
         <aside style={s.aside}>
-          <div style={s.subSection}>
-            <div style={s.subLabel}>Step 3 · tool mode</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-              {[
-                { id: "fill", label: "Flood fill" },
-                { id: "text", label: "Add text" },
-              ].map((tool) => (
-                <button
-                  key={tool.id}
-                  type="button"
-                  onClick={() => setToolMode(tool.id as "fill" | "text")}
-                  style={{
-                    background: toolMode === tool.id ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
-                    border: toolMode === tool.id ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    color: "#f1f5f9",
-                    fontWeight: 600,
-                  }}
-                >
-                  {tool.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <div style={{ display: "grid", gap: "12px" }}>
+            <div style={s.subSection}>
+              <div style={s.subLabel}>Active color</div>
 
-          <div style={s.subSection}>
-            <div style={s.subLabel}>Step 4 · repair tool</div>
-            <div style={{ display: "grid", gap: "10px" }}>
-              <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.55 }}>
-                Click the quantized canvas to flood fill a contiguous region with a selected inventory color.
+              <div style={{ display: "grid", gap: "10px" }}>
+                <div style={{ fontSize: "12px", color: "#cbd5e1", fontWeight: 600 }}>
+                  {getActiveColorLabel()}
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                  {selColors.map((c) => (
+                    <ColorChoiceButton
+                      key={`active-${c.id}`}
+                      color={c}
+                      active={getActiveEditableColorId() === c.id}
+                      compact
+                      onClick={() => setActiveEditableColorId(c.id)}
+                    />
+                  ))}
+                </div>
               </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {selColors.map((c) => (
+            </div>
+
+            <div style={s.subSection}>
+              <div style={s.subLabel}>Active tool</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px", marginBottom: "12px" }}>
+                {[
+                  { id: "select", label: "Select" },
+                  { id: "fill", label: "Flood fill" },
+                  { id: "text", label: "Text" },
+                  { id: "rect", label: "Rectangle" },
+                  { id: "circle", label: "Circle" },
+                  { id: "triangle", label: "Triangle" },
+                ].map((tool) => (
                   <button
-                    key={c.id}
+                    key={tool.id}
                     type="button"
-                    onClick={() => setFillColorId(c.id)}
+                    onClick={() => setToolModeSafe(tool.id as ToolMode)}
                     style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      background: fillColorId === c.id ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
-                      border: fillColorId === c.id ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.08)",
+                      background: toolMode === tool.id ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.03)",
+                      border: toolMode === tool.id ? "1px solid rgba(255,255,255,0.28)" : "1px solid rgba(255,255,255,0.08)",
                       borderRadius: "12px",
                       padding: "10px 12px",
                       cursor: "pointer",
                       fontSize: "13px",
                       color: "#f1f5f9",
-                      minWidth: 0,
+                      fontWeight: 600,
                     }}
                   >
-                    <span
-                      style={{
-                        width: "18px",
-                        height: "18px",
-                        borderRadius: "6px",
-                        background: c.hex,
-                        border: "1px solid rgba(0,0,0,0.15)",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      Fill with {c.name}
-                    </span>
+                    {tool.label}
                   </button>
                 ))}
               </div>
-            </div>
-          </div>
 
-          <div style={s.subSection}>
-            <div style={s.subLabel}>Step 5 · text tool</div>
-            <div style={{ display: "grid", gap: "10px" }}>
-              <input
-                type="text"
-                value={selectedText ? selectedText.value : textDraft.value}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  if (selectedText) {
-                    updateSelectedText((item) => ({ ...item, value }));
-                    setTextDraft((cur) => ({ ...cur, value }));
-                  } else {
-                    setTextDraft((cur) => ({ ...cur, value }));
-                  }
-                }}
-                placeholder="Enter text"
-                style={{
-                  width: "100%",
-                  background: "rgba(255,255,255,0.04)",
-                  border: "1px solid rgba(255,255,255,0.10)",
-                  color: "#f1f5f9",
-                  borderRadius: "12px",
-                  padding: "10px 12px",
-                  outline: "none",
-                }}
-              />
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
-                  Size
-                  <input
-                    type="range"
-                    min={24}
-                    max={220}
-                    step={2}
-                    value={selectedText ? selectedText.size : textDraft.size}
-                    onChange={(e) => {
-                      const size = Number(e.target.value);
-                      if (selectedText) {
-                        updateSelectedText((item) => ({ ...item, size }));
-                        setTextDraft((cur) => ({ ...cur, size }));
-                      } else {
-                        setTextDraft((cur) => ({ ...cur, size }));
-                      }
-                    }}
-                  />
-                </label>
-                <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
-                  Weight
-                  <select
-                    value={selectedText ? selectedText.weight : textDraft.weight}
-                    onChange={(e) => {
-                      const weight = e.target.value;
-                      if (selectedText) {
-                        updateSelectedText((item) => ({ ...item, weight }));
-                        setTextDraft((cur) => ({ ...cur, weight }));
-                      } else {
-                        setTextDraft((cur) => ({ ...cur, weight }));
-                      }
-                    }}
-                    style={{
-                      width: "100%",
-                      background: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.10)",
-                      color: "#f1f5f9",
-                      borderRadius: "12px",
-                      padding: "10px 12px",
-                    }}
-                  >
-                    <option value="400">Regular</option>
-                    <option value="700">Bold</option>
-                    <option value="900">Black</option>
-                  </select>
-                </label>
-              </div>
-              <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
-                Font
-                <select
-                  value={selectedText ? selectedText.fontFamily : textDraft.fontFamily}
-                  onChange={(e) => {
-                    const fontFamily = e.target.value;
-                    if (selectedText) {
-                      updateSelectedText((item) => ({ ...item, fontFamily }));
-                      setTextDraft((cur) => ({ ...cur, fontFamily }));
-                    } else {
-                      setTextDraft((cur) => ({ ...cur, fontFamily }));
-                    }
-                  }}
-                  style={{
-                    width: "100%",
-                    background: "rgba(255,255,255,0.04)",
-                    border: "1px solid rgba(255,255,255,0.10)",
-                    color: "#f1f5f9",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
-                  }}
-                >
-                  <option value="Arial">Arial</option>
-                  <option value="Impact">Impact</option>
-                  <option value="Verdana">Verdana</option>
-                  <option value="Tahoma">Tahoma</option>
-                  <option value="Trebuchet MS">Trebuchet MS</option>
-                </select>
-              </label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                {selColors.map((c) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    onClick={() => {
-                      if (selectedText) {
-                        updateSelectedText((item) => ({ ...item, colorId: c.id }));
-                        setTextDraft((cur) => ({ ...cur, colorId: c.id }));
-                      } else {
-                        setTextDraft((cur) => ({ ...cur, colorId: c.id }));
-                      }
-                    }}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      background:
-                        (selectedText ? selectedText.colorId : textDraft.colorId) === c.id
-                          ? "rgba(255,255,255,0.10)"
-                          : "rgba(255,255,255,0.03)",
-                      border:
-                        (selectedText ? selectedText.colorId : textDraft.colorId) === c.id
-                          ? "1px solid rgba(255,255,255,0.28)"
-                          : "1px solid rgba(255,255,255,0.08)",
-                      borderRadius: "12px",
-                      padding: "10px 12px",
-                      cursor: "pointer",
-                      fontSize: "13px",
-                      color: "#f1f5f9",
-                      minWidth: 0,
-                    }}
-                  >
-                    <span
+              <div style={{ display: "grid", gap: "10px" }}>
+                {toolMode === "fill" ? (
+                  <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.55 }}>
+                    Click the quantized canvas to flood fill a contiguous region.
+                  </div>
+                ) : null}
+
+                {toolMode === "select" && selectedShape ? (
+                  <div style={{ display: "grid", gap: "8px" }}>
+                    <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                      Drag on canvas to move. Edit size and position below.
+                    </div>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                        X
+                        <input
+                          type="number"
+                          value={Math.round(selectedShape.x)}
+                          onChange={(e) =>
+                            updateSelectedShape((shape) => ({ ...shape, x: Number(e.target.value) }))
+                          }
+                          style={inputStyle}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                        Y
+                        <input
+                          type="number"
+                          value={Math.round(selectedShape.y)}
+                          onChange={(e) =>
+                            updateSelectedShape((shape) => ({ ...shape, y: Number(e.target.value) }))
+                          }
+                          style={inputStyle}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                        W
+                        <input
+                          type="number"
+                          min={1}
+                          value={Math.round(selectedShape.w)}
+                          onChange={(e) =>
+                            updateSelectedShape((shape) => ({ ...shape, w: Math.max(1, Number(e.target.value)) }))
+                          }
+                          style={inputStyle}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                        H
+                        <input
+                          type="number"
+                          min={1}
+                          value={Math.round(selectedShape.h)}
+                          onChange={(e) =>
+                            updateSelectedShape((shape) => ({ ...shape, h: Math.max(1, Number(e.target.value)) }))
+                          }
+                          style={inputStyle}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                {toolMode === "text" ? (
+                  <div style={{ display: "grid", gap: "10px" }}>
+                    <input
+                      type="text"
+                      value={selectedText ? selectedText.value : textDraft.value}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (selectedText) {
+                          updateSelectedText((item) => ({ ...item, value }));
+                          setTextDraft((cur) => ({ ...cur, value }));
+                        } else {
+                          setTextDraft((cur) => ({ ...cur, value }));
+                        }
+                      }}
+                      placeholder="Enter text"
                       style={{
-                        width: "18px",
-                        height: "18px",
-                        borderRadius: "6px",
-                        background: c.hex,
-                        border: "1px solid rgba(0,0,0,0.15)",
-                        flexShrink: 0,
+                        width: "100%",
+                        background: "rgba(255,255,255,0.04)",
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        color: "#f1f5f9",
+                        borderRadius: "12px",
+                        padding: "10px 12px",
+                        outline: "none",
                       }}
                     />
-                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
-                  </button>
-                ))}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedTextId(null);
-                    setTextDraft(makeTextOverlay({ colorId: selColors[0]?.id ?? DEFAULT_TEXT.colorId }));
-                    setLastEdit("Ready to place new text.");
-                  }}
-                  style={{
-                    background: "rgba(255,255,255,0.03)",
-                    border: "1px solid rgba(255,255,255,0.08)",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
-                    cursor: "pointer",
-                    fontSize: "13px",
-                    color: "#f1f5f9",
-                  }}
-                >
-                  New text
-                </button>
-                <button
-                  type="button"
-                  disabled={!selectedText}
-                  onClick={() => {
-                    if (!selectedText) return;
-                    setTextItems((cur) => cur.filter((item) => item.id !== selectedText.id));
-                    setSelectedTextId(null);
-                    setTextDraft(makeTextOverlay({ colorId: selColors[0]?.id ?? DEFAULT_TEXT.colorId }));
-                    setUsageVersion((v) => v + 1);
-                    setLastEdit(`Deleted text \"${selectedText.value}\".`);
-                  }}
-                  style={{
-                    background: selectedText ? "#f1f5f9" : "rgba(255,255,255,0.08)",
-                    color: selectedText ? "#0f172a" : "#64748b",
-                    border: "none",
-                    borderRadius: "12px",
-                    padding: "10px 12px",
-                    cursor: selectedText ? "pointer" : "not-allowed",
-                    fontSize: "13px",
-                    fontWeight: 700,
-                  }}
-                >
-                  Delete selected
-                </button>
-              </div>
-              <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.55 }}>
-                In <strong>Add text</strong> mode, the cursor shows a live ghost preview. Click existing text to edit it, or click empty space to place new text.
-              </div>
-            </div>
-          </div>
 
-          <div style={{ ...s.subSection, marginBottom: 0 }}>
-            <div style={s.subLabel}>Step 6 · output summary</div>
-            <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.8 }}>
-              <div>Build size: 4 in × 4 in</div>
-              <div>Render mode: hard-palette quantization + flood fill + editable text overlay</div>
-              <div>Anti-aliasing: disabled at export</div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                        Size
+                        <input
+                          type="range"
+                          min={32}
+                          max={220}
+                          step={2}
+                          value={selectedText ? selectedText.size : textDraft.size}
+                          onChange={(e) => {
+                            const size = Number(e.target.value);
+                            if (selectedText) {
+                              updateSelectedText((item) => ({ ...item, size }));
+                              setTextDraft((cur) => ({ ...cur, size }));
+                            } else {
+                              setTextDraft((cur) => ({ ...cur, size }));
+                            }
+                          }}
+                        />
+                      </label>
+
+                      <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                        Weight
+                        <select
+                          value={selectedText ? selectedText.weight : textDraft.weight}
+                          onChange={(e) => {
+                            const weight = e.target.value;
+                            if (selectedText) {
+                              updateSelectedText((item) => ({ ...item, weight }));
+                              setTextDraft((cur) => ({ ...cur, weight }));
+                            } else {
+                              setTextDraft((cur) => ({ ...cur, weight }));
+                            }
+                          }}
+                          style={{
+                            width: "100%",
+                            background: "rgba(255,255,255,0.04)",
+                            border: "1px solid rgba(255,255,255,0.10)",
+                            color: "#f1f5f9",
+                            borderRadius: "12px",
+                            padding: "10px 12px",
+                          }}
+                        >
+                          <option value="400">Regular</option>
+                          <option value="600">Bold</option>
+                        </select>
+                      </label>
+                    </div>
+
+                    <label style={{ display: "grid", gap: "6px", fontSize: "12px", color: "#94a3b8" }}>
+                      Font
+                      <select
+                        value={selectedText ? selectedText.fontFamily : textDraft.fontFamily}
+                        onChange={(e) => {
+                          const fontFamily = e.target.value;
+                          if (selectedText) {
+                            updateSelectedText((item) => ({ ...item, fontFamily }));
+                            setTextDraft((cur) => ({ ...cur, fontFamily }));
+                          } else {
+                            setTextDraft((cur) => ({ ...cur, fontFamily }));
+                          }
+                        }}
+                        style={{
+                          width: "100%",
+                          background: "rgba(255,255,255,0.04)",
+                          border: "1px solid rgba(255,255,255,0.10)",
+                          color: "#f1f5f9",
+                          borderRadius: "12px",
+                          padding: "10px 12px",
+                        }}
+                      >
+                        <option value="Arial">Arial</option>
+                        <option value="Impact">Impact</option>
+                        <option value="Verdana">Verdana</option>
+                        <option value="Tahoma">Tahoma</option>
+                        <option value="Trebuchet MS">Trebuchet MS</option>
+                      </select>
+                    </label>
+
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedTextId(null);
+                          setTextDraft(makeTextOverlay({ colorId: selColors[0]?.id ?? DEFAULT_TEXT.colorId }));
+                          setLastEdit("Ready to place new text.");
+                        }}
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: "12px",
+                          padding: "10px 12px",
+                          cursor: "pointer",
+                          fontSize: "13px",
+                          color: "#f1f5f9",
+                        }}
+                      >
+                        New text
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={!selectedText}
+                        onClick={() => {
+                          if (!selectedText) return;
+                          setTextItems((cur) => cur.filter((item) => item.id !== selectedText.id));
+                          setSelectedTextId(null);
+                          setTextDraft(makeTextOverlay({ colorId: selColors[0]?.id ?? DEFAULT_TEXT.colorId }));
+                          setUsageVersion((v) => v + 1);
+                          setLastEdit(`Deleted text "${selectedText.value}".`);
+                        }}
+                        style={{
+                          background: selectedText ? "#f1f5f9" : "rgba(255,255,255,0.08)",
+                          color: selectedText ? "#0f172a" : "#64748b",
+                          border: "none",
+                          borderRadius: "12px",
+                          padding: "10px 12px",
+                          cursor: selectedText ? "pointer" : "not-allowed",
+                          fontSize: "13px",
+                          fontWeight: 700,
+                        }}
+                      >
+                        Delete selected
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+
+                {(toolMode === "rect" || toolMode === "circle" || toolMode === "triangle") ? (
+                  <div style={{ fontSize: "12px", color: "#94a3b8", lineHeight: 1.55 }}>
+                    Click and drag on the quantized canvas to draw a shape.
+                  </div>
+                ) : null}
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={resetQuantizedImage}
+              style={{
+                width: "100%",
+                background: "rgba(255,255,255,0.08)",
+                color: "#f1f5f9",
+                fontWeight: 700,
+                fontSize: "13px",
+                padding: "10px 14px",
+                borderRadius: "12px",
+                border: "1px solid rgba(255,255,255,0.08)",
+                cursor: "pointer",
+              }}
+            >
+              Undo all changes
+            </button>
 
             <button
               type="button"
               onClick={() => void downloadLayeredSvgZip()}
               style={{
-                marginTop: "12px",
                 width: "100%",
                 background: "#f1f5f9",
                 color: "#0f172a",
                 fontWeight: 800,
                 fontSize: "13px",
-                letterSpacing: "0.06em",
+                letterSpacing: "0.04em",
                 padding: "12px 14px",
                 borderRadius: "12px",
                 border: "none",
                 cursor: "pointer",
               }}
             >
-              FINALIZE PRINT
+              Submit for design review
             </button>
-
-            <button
-              type="button"
-              onClick={resetQuantizedImage}
-              disabled={!img}
-              style={{
-                marginTop: "12px",
-                width: "100%",
-                background: "rgba(255,255,255,0.08)",
-                color: img ? "#f1f5f9" : "#64748b",
-                fontWeight: 700,
-                fontSize: "13px",
-                padding: "10px 14px",
-                borderRadius: "12px",
-                border: "1px solid rgba(255,255,255,0.08)",
-                cursor: img ? "pointer" : "not-allowed",
-              }}
-            >
-              Reset manual edits
-            </button>
-            <div style={{ marginTop: "10px", fontSize: "11px", color: "#64748b" }}>{lastEdit}</div>
-
-            {usage.length > 0 ? (
-              <div
-                style={{
-                  marginTop: "12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "6px",
-                }}
-              >
-                {usage.map((e) => (
-                  <div
-                    key={e.color.id}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                      fontSize: "12px",
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: "14px",
-                        height: "14px",
-                        borderRadius: "4px",
-                        background: e.color.hex,
-                        border: "1px solid rgba(0,0,0,0.15)",
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span style={{ color: "#e2e8f0", minWidth: "80px" }}>{e.color.name}</span>
-                    <span style={{ color: "#64748b" }}>{e.pct.toFixed(1)}%</span>
-                    <div
-                      style={{
-                        flex: 1,
-                        height: "3px",
-                        borderRadius: "2px",
-                        background: "rgba(255,255,255,0.06)",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: `${e.pct}%`,
-                          height: "100%",
-                          borderRadius: "2px",
-                          background: e.color.hex,
-                          opacity: 0.7,
-                        }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div style={{ marginTop: "10px", fontSize: "12px", color: "#475569" }}>
-                Load an image to see color usage breakdown.
-              </div>
-            )}
           </div>
         </aside>
+        {showPaletteSuggestions && !hasDismissedPaletteSuggestions ? (
+          <div
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "rgba(0,0,0,0.55)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "24px",
+              zIndex: 1000,
+            }}
+          >
+            <div
+              style={{
+                width: "min(960px, 100%)",
+                maxHeight: "85vh",
+                overflowY: "auto",
+                background: "#11161d",
+                border: "1px solid rgba(255,255,255,0.10)",
+                borderRadius: "24px",
+                padding: "18px",
+                boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
+                display: "grid",
+                gap: "14px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "12px",
+                }}
+              >
+                <div style={{ fontSize: "16px", fontWeight: 700, color: "#f1f5f9" }}>
+                  Optimized palettes
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPaletteSuggestions(false);
+                    setHasDismissedPaletteSuggestions(true);
+                  }}
+                  style={{
+                    background: "rgba(255,255,255,0.08)",
+                    color: "#f1f5f9",
+                    border: "1px solid rgba(255,255,255,0.10)",
+                    borderRadius: "10px",
+                    padding: "8px 10px",
+                    cursor: "pointer",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                  }}
+                >
+                  CLOSE
+                </button>
+              </div>
+
+              {paletteSuggestions.length > 0 ? (
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+                    gap: "12px",
+                  }}
+                >
+                  {paletteSuggestions.map((suggestion) => {
+                    const colors = INVENTORY_COLORS.filter((c) => suggestion.colorIds.includes(c.id));
+
+                    return (
+                      <div
+                        key={suggestion.id}
+                        style={{
+                          background: "rgba(255,255,255,0.03)",
+                          border: "1px solid rgba(255,255,255,0.08)",
+                          borderRadius: "16px",
+                          padding: "12px",
+                          display: "grid",
+                          gap: "10px",
+                        }}
+                      >
+                        <div style={{ fontSize: "13px", fontWeight: 700, color: "#f1f5f9" }}>
+                          {suggestion.label}
+                        </div>
+
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "8px" }}>
+                          {colors.map((c) => (
+                            <div key={c.id} style={{ display: "grid", gap: "4px" }}>
+                              <div
+                                style={{
+                                  height: "24px",
+                                  borderRadius: "8px",
+                                  background: c.hex,
+                                  border: "1px solid rgba(0,0,0,0.15)",
+                                }}
+                              />
+                              <div style={{ fontSize: "10px", color: "#94a3b8", textAlign: "center" }}>
+                                {c.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        <img
+                          src={suggestion.previewDataUrl}
+                          alt={suggestion.label}
+                          style={{
+                            width: "100%",
+                            borderRadius: "12px",
+                            border: "1px solid rgba(255,255,255,0.08)",
+                            display: "block",
+                          }}
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelIds(suggestion.colorIds);
+                            setBgId(suggestion.colorIds[0] ?? "elegoo-black");
+                            setLastEdit(`Applied suggested palette: ${suggestion.label}.`);
+                            setShowPaletteSuggestions(false);
+                            setHasDismissedPaletteSuggestions(true);
+                          }}
+                          style={{
+                            width: "100%",
+                            background: "#f1f5f9",
+                            color: "#0f172a",
+                            fontWeight: 700,
+                            fontSize: "13px",
+                            padding: "10px 12px",
+                            borderRadius: "12px",
+                            border: "none",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Use this palette
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ fontSize: "12px", color: "#64748b" }}>
+                  No palette suggestions available yet.
+                </div>
+              )}
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
