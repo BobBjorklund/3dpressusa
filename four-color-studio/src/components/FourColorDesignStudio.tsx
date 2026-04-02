@@ -235,29 +235,9 @@ function labDist(a: Lab, b: Lab): number {
   return (a.l - b.l) ** 2 + (a.a - b.a) ** 2 + (a.b - b.b) ** 2;
 }
 
-const INVENTORY_COLORS: InventoryColor[] = [
-  { id: "overture-purple", name: "Purple", hex: "#6F52A3" },
-
-  { id: "elegoo-beige", name: "Beige", hex: "#BEA586" },
-  { id: "elegoo-brown", name: "Brown", hex: "#6B4A2E" },
-  { id: "elegoo-yellow", name: "Yellow", hex: "#E5C529" },
-  { id: "ujoybio-yellow", name: "Yellow (bright)", hex: "#F2D13A" },
-  { id: "ujoybio-cobalt-blue", name: "Cobalt blue", hex: "#2F5DA8" },
-  { id: "elegoo-blue", name: "Blue", hex: "#1F4FBF" },
-  { id: "elegoo-red", name: "Red", hex: "#B23A32" },
-  { id: "elegoo-white", name: "White", hex: "#E9E9E7" },
-  { id: "elegoo-black", name: "Black", hex: "#1E1E20" },
-  { id: "elegoo-green", name: "Green", hex: "#2F7A4A" },
-  { id: "ujoybio-christmas-green", name: "Christmas green", hex: "#1F6A3A" },
-  { id: "eagles-green", name: "E-A-G-L-E-S", hex: "#0F3B2F" },
-
-  { id: "ujoybio-orange", name: "Orange", hex: "#D96A1D" },
 
 
-  { id: "silver", name: "Silver", hex: "#B3B5BA" },
-];
-
-const MIN_FEATURE_MM = 0.2;
+const MIN_FEATURE_MM = 0.4;
 const TILE_SIZE_MM = 101.6;
 const CANVAS_SIZE = Math.round(TILE_SIZE_MM / MIN_FEATURE_MM); // 508
 const GRID_STEP = 1; // one canvas pixel = one printable feature
@@ -278,7 +258,7 @@ const DEFAULT_TEXT = {
   x: CANVAS_SIZE / 2,
   y: CANVAS_SIZE / 2,
   size: 32,
-  colorId: "elegoo-black",
+  colorId: "",
   fontFamily: "Arial",
   weight: "400",
 };
@@ -307,6 +287,10 @@ function colorDist(a: Rgb, b: Rgb): number {
 }
 
 function nearest(rgb: Rgb, palette: InventoryColor[]): InventoryColor {
+  if (palette.length === 0) {
+    throw new Error("nearest() called with empty palette");
+  }
+
   const lab = rgbToLab(rgb);
 
   let best = palette[0];
@@ -324,6 +308,10 @@ function nearest(rgb: Rgb, palette: InventoryColor[]): InventoryColor {
 }
 
 function quantize(imageData: ImageData, palette: InventoryColor[]): ImageData {
+  if (palette.length === 0) {
+    return imageData;
+  }
+
   const d = imageData.data;
 
   for (let i = 0; i < d.length; i += 4) {
@@ -547,13 +535,16 @@ function ColorChoiceButton({
   );
 }
 export default function FourColorDesignStudio() {
+  const [inventoryColors, setInventoryColors] = useState<InventoryColor[]>([]);
   const [showPaletteSuggestions, setShowPaletteSuggestions] = useState(false);
   const [hasDismissedPaletteSuggestions, setHasDismissedPaletteSuggestions] = useState(false);
-  const [selIds, setSelIds] = useState<string[]>(["elegoo-black", "elegoo-white", "elegoo-red", "elegoo-blue"]);
+  const [selIds, setSelIds] = useState<string[]>([]);
+  const [bgId, setBgId] = useState<string>("");
+  const [fillColorId, setFillColorId] = useState<string>("");
+  const [shapeColorId, setShapeColorId] = useState<string>("");
   const [img, setImg] = useState<HTMLImageElement | null>(null);
   const [imgName, setImgName] = useState<string>("");
-  const [bgId, setBgId] = useState<string>("elegoo-black");
-  const [fillColorId, setFillColorId] = useState<string>("elegoo-red");
+
   const [usageVersion, setUsageVersion] = useState(0);
   const [lastEdit, setLastEdit] = useState<string>("No manual edits yet.");
   const [textDraft, setTextDraft] = useState<TextOverlay>(makeTextOverlay());
@@ -561,7 +552,6 @@ export default function FourColorDesignStudio() {
   const [selectedTextId, setSelectedTextId] = useState<string | null>(null);
   const [hoverPoint, setHoverPoint] = useState<{ x: number; y: number } | null>(null);
   const [toolMode, setToolMode] = useState<ToolMode>("fill");
-  const [shapeColorId, setShapeColorId] = useState<string>("elegoo-red");
   const [shapes, setShapes] = useState<ShapeItem[]>([]);
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
@@ -574,8 +564,8 @@ export default function FourColorDesignStudio() {
   const baseQuantizedRef = useRef<ImageData | null>(null);
 
   const selColors = useMemo(
-    () => INVENTORY_COLORS.filter((c) => selIds.includes(c.id)),
-    [selIds],
+    () => inventoryColors.filter((c) => selIds.includes(c.id)),
+    [inventoryColors, selIds],
   );
   function hitTestShape(x: number, y: number): ShapeItem | null {
     for (let i = shapes.length - 1; i >= 0; i -= 1) {
@@ -741,13 +731,13 @@ export default function FourColorDesignStudio() {
     return canvas.toDataURL("image/png");
   }
   const bgColor = useMemo(
-    () => INVENTORY_COLORS.find((c) => c.id === bgId) ?? INVENTORY_COLORS[10],
-    [bgId],
+    () => inventoryColors.find((c) => c.id === bgId) ?? inventoryColors[0] ?? null,
+    [inventoryColors, bgId],
   );
 
   const fillColor = useMemo(
     () => selColors.find((c) => c.id === fillColorId) ?? selColors[0] ?? null,
-    [fillColorId, selColors],
+    [selColors, fillColorId],
   );
 
   const textColor = useMemo(
@@ -786,14 +776,56 @@ export default function FourColorDesignStudio() {
       .filter((e) => e.pixels > 0)
       .sort((a, b) => b.pixels - a.pixels);
   }, [selColors, usageVersion]);
+
   useEffect(() => {
-    if (!img) {
+    if (inventoryColors.length === 0) return;
+
+    setSelIds((cur) => {
+      if (cur.length > 0) {
+        return cur.filter((id) => inventoryColors.some((c) => c.id === id));
+      }
+
+      return inventoryColors.slice(0, 4).map((c) => c.id);
+    });
+
+    setBgId((cur) =>
+      cur && inventoryColors.some((c) => c.id === cur)
+        ? cur
+        : inventoryColors[0]?.id ?? ""
+    );
+
+    setFillColorId((cur) =>
+      cur && inventoryColors.some((c) => c.id === cur)
+        ? cur
+        : inventoryColors[0]?.id ?? ""
+    );
+
+    setShapeColorId((cur) =>
+      cur && inventoryColors.some((c) => c.id === cur)
+        ? cur
+        : inventoryColors[0]?.id ?? ""
+    );
+
+    setTextDraft((cur) => ({
+      ...cur,
+      colorId:
+        cur.colorId && inventoryColors.some((c) => c.id === cur.colorId)
+          ? cur.colorId
+          : inventoryColors[0]?.id ?? "",
+    }));
+  }, [inventoryColors]);
+
+  useEffect(() => {
+    fetch("/api/inventory-colors", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((data: InventoryColor[]) => {
+        setInventoryColors(data);
+      });
+  }, []);
+  useEffect(() => {
+    if (!img || !bgColor || inventoryColors.length === 0) {
       setPaletteSuggestions([]);
       return;
-    }
-
-    if (selIds.length > 0) {
-      // optional: no-op if you want suggestions independent of current selected colors
     }
 
     const canvas = document.createElement("canvas");
@@ -812,12 +844,12 @@ export default function FourColorDesignStudio() {
 
     const id = ctx.getImageData(0, 0, 160, 160);
 
-    const ranked = rankInventoryColorsFromImage(id, INVENTORY_COLORS);
+    const ranked = rankInventoryColorsFromImage(id, inventoryColors);
     const candidates = buildPaletteSuggestionsFromRanked(ranked);
 
     const suggestions: PaletteSuggestion[] = candidates
       .map((candidate, index) => {
-        const palette = INVENTORY_COLORS.filter((c) => candidate.colorIds.includes(c.id));
+        const palette = inventoryColors.filter((c) => candidate.colorIds.includes(c.id));
         const previewDataUrl = makePalettePreviewDataUrl(img, palette, bgColor.hex, 220);
 
         if (!previewDataUrl || palette.length !== 4) return null;
@@ -833,7 +865,7 @@ export default function FourColorDesignStudio() {
       .filter((x): x is PaletteSuggestion => Boolean(x));
 
     setPaletteSuggestions(dedupePaletteSuggestions(suggestions));
-  }, [img, bgColor]);
+  }, [img, bgColor, inventoryColors]);
   useEffect(() => {
     if (!selColors.some((c) => c.id === fillColorId) && selColors[0]) {
       setFillColorId(selColors[0].id);
@@ -867,12 +899,16 @@ export default function FourColorDesignStudio() {
   function drawBaseOnto(ctx: CanvasRenderingContext2D): void {
     ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     ctx.imageSmoothingEnabled = false;
+
     if (baseQuantizedRef.current) {
       ctx.putImageData(baseQuantizedRef.current, 0, 0);
       return;
     }
 
     drawChecker(ctx, CANVAS_SIZE, CANVAS_SIZE);
+
+    if (!bgColor) return;
+
     ctx.fillStyle = bgColor.hex;
     ctx.fillRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
   }
@@ -999,6 +1035,7 @@ export default function FourColorDesignStudio() {
 
     const exportCtx = exportCanvas.getContext("2d");
     if (!exportCtx) return;
+
     const exportImageData = exportCtx.getImageData(0, 0, exportCanvas.width, exportCanvas.height);
     const cleaned = removeTinyRuns(exportImageData, 1);
     exportCtx.putImageData(cleaned, 0, 0);
@@ -1027,6 +1064,13 @@ export default function FourColorDesignStudio() {
       .replace(/-+/g, "-")
       .replace(/^-|-$/g, "");
 
+    const safeFilePart = (value: string) =>
+      value
+        .replace(/[^a-z0-9-_]+/gi, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "")
+        .toLowerCase();
+
     const usedColors = selColors.filter((color) => {
       const rgb = hexToRgb(color.hex);
       for (let i = 0; i < data.length; i += 4) {
@@ -1047,19 +1091,27 @@ export default function FourColorDesignStudio() {
       return;
     }
 
+    const svgFileNames: string[] = [];
+
     for (const color of usedColors) {
       const rgb = hexToRgb(color.hex);
       const svgParts: string[] = [];
 
+      const safeColorPart = safeFilePart(color.id || color.name || color.hex);
+      const svgFileName = `${safeName}-${safeColorPart}.svg`;
+      svgFileNames.push(svgFileName);
+
       svgParts.push(
         `<?xml version="1.0" encoding="UTF-8"?>`,
         `<svg xmlns="http://www.w3.org/2000/svg" width="4in" height="4in" viewBox="0 0 ${TILE_SIZE_MM} ${TILE_SIZE_MM}" shape-rendering="crispEdges">`,
-        `<title>${escapeXml(`${safeName}-${color.id}`)}</title>`,
+        `<title>${escapeXml(`${safeName}-${safeColorPart}`)}</title>`,
         `<desc>${escapeXml(`Single-color layer export for ${color.name} (${color.hex}).`)}</desc>`,
       );
+
       svgParts.push(
         `<rect x="0" y="${(TILE_SIZE_MM - REG_MARK_SIZE_MM).toFixed(4)}" width="${REG_MARK_SIZE_MM}" height="${REG_MARK_SIZE_MM}" fill="${color.hex}"/>`
       );
+
       for (let y = 0; y < height; y += 1) {
         let runStart = -1;
 
@@ -1094,25 +1146,26 @@ export default function FourColorDesignStudio() {
 
       svgParts.push(`</svg>`);
 
-      zip.file(
-        `${safeName}-${color.id}.svg`,
-        svgParts.join(""),
-      );
+      zip.file(svgFileName, svgParts.join(""));
     }
 
-    zip.file(
-      `${safeName}-README.txt`,
-      [
-        `Design: ${safeName}`,
-        `Tile size: 4in x 4in`,
-        `Exported layers: ${usedColors.length}`,
-        ``,
-        `Files:`,
-        ...usedColors.map((c, i) => `${i + 1}. ${safeName}-${c.id}.svg  (${c.name} ${c.hex})`),
-        ``,
-        `Import each SVG separately into Bambu Studio and align them.`,
-      ].join("\n"),
-    );
+    const svgArgs = svgFileNames
+      .map((fileName) => `  --svg "${fileName}" ^`)
+      .join("\n");
+
+    const batContent = `@echo off
+echo Building 3MF for ${safeName}...
+
+python ..\\svg_stack_to_placard_3mf.py ^
+  --placard ..\\placard.stl ^
+${svgArgs}
+  --output "${safeName}.3mf"
+
+echo Done.
+pause
+`;
+
+    zip.file(`${safeName}.bat`, batContent);
 
     const blob = await zip.generateAsync({ type: "blob" });
     const url = URL.createObjectURL(blob);
@@ -1132,6 +1185,8 @@ export default function FourColorDesignStudio() {
     const sc = srcRef.current;
     const qc = qRef.current;
     if (!sc || !qc) return;
+    if (!bgColor) return;
+    if (inventoryColors.length === 0) return;
 
     const sCtx = sc.getContext("2d");
     const qCtx = qc.getContext("2d");
@@ -1202,8 +1257,7 @@ export default function FourColorDesignStudio() {
   function resetQuantizedImage(): void {
     const sc = srcRef.current;
     const qc = qRef.current;
-    if (!sc || !qc || !img) return;
-
+    if (!sc || !qc || !img || !bgColor || selColors.length === 0) return;
     const sCtx = sc.getContext("2d");
     const qCtx = qc.getContext("2d");
     if (!sCtx || !qCtx) return;
@@ -1682,7 +1736,7 @@ export default function FourColorDesignStudio() {
               <div style={s.subLabel}>Palette</div>
 
               <div style={s.colorGrid}>
-                {INVENTORY_COLORS.map((c) => {
+                {inventoryColors.map((c) => {
                   const active = selIds.includes(c.id);
                   const disabled = !active && selIds.length >= MAX_SELECTED;
                   const isBackground = bgId === c.id && active;
@@ -2201,7 +2255,7 @@ export default function FourColorDesignStudio() {
                   }}
                 >
                   {paletteSuggestions.map((suggestion) => {
-                    const colors = INVENTORY_COLORS.filter((c) => suggestion.colorIds.includes(c.id));
+                    const colors = inventoryColors.filter((c) => suggestion.colorIds.includes(c.id));
 
                     return (
                       <div
@@ -2252,7 +2306,7 @@ export default function FourColorDesignStudio() {
                           type="button"
                           onClick={() => {
                             setSelIds(suggestion.colorIds);
-                            setBgId(suggestion.colorIds[0] ?? "elegoo-black");
+                            setBgId(suggestion.colorIds[0] ?? inventoryColors[0]?.id ?? "");
                             setLastEdit(`Applied suggested palette: ${suggestion.label}.`);
                             setShowPaletteSuggestions(false);
                             setHasDismissedPaletteSuggestions(true);

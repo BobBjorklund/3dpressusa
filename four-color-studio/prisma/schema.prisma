@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  role      String   @default("user") // admin | user
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  filamentSpecs    FilamentSpec[]
+  spools           Spool[]
+  spoolProfiles    SpoolProfile[]
+  printers         Printer[]
+  jobs             Job[]
+  spoolComments    SpoolComment[]
+  specComments     SpecComment[]
+  jobComments      JobComment[]
+}
+
+// ── FilamentSpec ──────────────────────────────────────────────────────────────
+
+model FilamentSpec {
+  id                        String   @id @default(cuid())
+  brand                     String
+  material                  String
+  subtype                   String?
+  productLine               String?
+  finish                    String?
+  diameterMm                Float?   @default(1.75)
+  manufacturerFullFilamentG Int?
+  abrasive                  Boolean?
+  hygroscopic               Boolean?
+  amsSafe                   Boolean?
+  dryingTempC               Int?
+  dryingHours               Float?
+  isGlobal                  Boolean  @default(false)
+  requestedGlobal           Boolean  @default(false)
+  createdByUserId           String
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+
+  createdBy                 User          @relation(fields: [createdByUserId], references: [id])
+  spools                    Spool[]
+  comments                  SpecComment[]
+
+  @@index([brand, material, subtype, productLine])
+  @@index([isGlobal])
+}
+
+model SpecComment {
+  id             String   @id @default(cuid())
+  filamentSpecId String
+  userId         String
+  body           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  filamentSpec   FilamentSpec @relation(fields: [filamentSpecId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+}
+
+// ── Printer ───────────────────────────────────────────────────────────────────
+
+model Printer {
+  id                   String   @id @default(cuid())
+  userId               String
+  name                 String
+  manufacturer         String?
+  model                String?
+  status               String   @default("active") // active | maintenance | retired
+  bedSizeXMm           Float?
+  bedSizeYMm           Float?
+  bedSizeZMm           Float?
+  bedType              String?
+  extruderCount        Int?     @default(1)
+  currentNozzleDiameterMm Float?  @default(0.4)
+  currentNozzleMaterial   String? // brass | hardened_steel | ruby etc
+  connectionMethod     String?  // stub: usb | wifi | octoprint | bambu_cloud etc
+  connectionChannel    String?  // stub: ip address, device id etc
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User           @relation(fields: [userId], references: [id])
+  events               PrinterEvent[]
+  jobs                 Job[]
+  spoolProfiles        SpoolProfile[]
+}
+
+model PrinterEvent {
+  id          String   @id @default(cuid())
+  printerId   String
+  eventType   String   // nozzle_swap | bed_swap | maintenance | retired | note
+  note        String?
+  createdAt   DateTime @default(now())
+
+  printer     Printer  @relation(fields: [printerId], references: [id])
+}
+
+// ── Spool ─────────────────────────────────────────────────────────────────────
+
+model Spool {
+  id                   String    @id @default(cuid())
+  uid                  String    @unique
+  userId               String
+  filamentSpecId       String
+  status               String    @default("active") // active | archived
+  colorName            String?
+  colorHex             String?
+  grossWeightG         Int?
+  emptySpoolWeightG    Int?
+  remainingNetWeightG  Int?
+  receivedGrossWeightG Int?
+  lastWeighedAt        DateTime?
+  purchasePriceCents   Int?
+  purchaseCurrency     String?   @default("USD")
+  purchaseUrl          String?
+  purchasedFrom        String?
+  purchasedAt          DateTime?
+  personalRating       Int?
+  notes                String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user                 User             @relation(fields: [userId], references: [id])
+  filamentSpec         FilamentSpec     @relation(fields: [filamentSpecId], references: [id])
+  profiles             SpoolProfile[]
+  events               SpoolEvent[]
+  jobFilaments         JobFilament[]
+  comments             SpoolComment[]
+
+  @@index([userId, status])
+  @@index([filamentSpecId])
+}
+
+model SpoolProfile {
+  id               String   @id @default(cuid())
+  spoolId          String
+  userId           String
+  printerId        String?
+  name             String
+  isDefault        Boolean  @default(false)
+  nozzleTempC      Int?
+  bedTempC         Int?
+  speedMms         Int?
+  volumetricMaxMms Float?
+  flowRatePct      Float?   @default(100)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  spool            Spool    @relation(fields: [spoolId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
+  printer          Printer? @relation(fields: [printerId], references: [id])
+
+  @@index([spoolId, printerId])
+}
+
+model SpoolEvent {
+  id          String   @id @default(cuid())
+  spoolId     String
+  eventType   String   // created | weighed | manual_deduction | job_deduction | archived
+  gramsBefore Int?
+  gramsAfter  Int?
+  gramsDelta  Int?
+  note        String?
+  createdAt   DateTime @default(now())
+
+  spool       Spool    @relation(fields: [spoolId], references: [id])
+}
+
+model SpoolComment {
+  id        String   @id @default(cuid())
+  spoolId   String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  spool     Spool    @relation(fields: [spoolId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+// ── Job ───────────────────────────────────────────────────────────────────────
+
+model Job {
+  id              String    @id @default(cuid())
+  userId          String
+  printerId       String?
+  name            String
+  status          String    // queued | running | paused | completed | failed | cancelled
+  success         Boolean?
+  timelapseUrl    String?
+  failureFeedback String?
+  startedAt       DateTime?
+  endedAt         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user            User          @relation(fields: [userId], references: [id])
+  printer         Printer?      @relation(fields: [printerId], references: [id])
+  filaments       JobFilament[]
+  comments        JobComment[]
+}
+
+model JobFilament {
+  id             String  @id @default(cuid())
+  jobId          String
+  spoolId        String
+  estimatedUsedG Int?
+  deductedUsedG  Int?
+  role           String? // primary | support | purge
+
+  job            Job   @relation(fields: [jobId], references: [id])
+  spool          Spool @relation(fields: [spoolId], references: [id])
+
+  @@index([jobId, spoolId])
+}
+
+model JobComment {
+  id          String   @id @default(cuid())
+  jobId       String
+  userId      String
+  body        String
+  commentType String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  job         Job      @relation(fields: [jobId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+}
