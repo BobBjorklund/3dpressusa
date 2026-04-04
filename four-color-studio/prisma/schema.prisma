@@ -71,28 +71,28 @@ model SpecComment {
 // ── Printer ───────────────────────────────────────────────────────────────────
 
 model Printer {
-  id                   String   @id @default(cuid())
-  userId               String
-  name                 String
-  manufacturer         String?
-  model                String?
-  status               String   @default("active") // active | maintenance | retired
-  bedSizeXMm           Float?
-  bedSizeYMm           Float?
-  bedSizeZMm           Float?
-  bedType              String?
-  extruderCount        Int?     @default(1)
-  currentNozzleDiameterMm Float?  @default(0.4)
-  currentNozzleMaterial   String? // brass | hardened_steel | ruby etc
-  connectionMethod     String?  // stub: usb | wifi | octoprint | bambu_cloud etc
-  connectionChannel    String?  // stub: ip address, device id etc
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
+  id                      String   @id @default(cuid())
+  userId                  String
+  name                    String
+  manufacturer            String?
+  model                   String?
+  status                  String   @default("active") // active | maintenance | retired
+  bedSizeXMm              Float?
+  bedSizeYMm              Float?
+  bedSizeZMm              Float?
+  bedType                 String?
+  extruderCount           Int?     @default(1)
+  currentNozzleDiameterMm Float?   @default(0.4)
+  currentNozzleMaterial   String?
+  connectionMethod        String?
+  connectionChannel       String?
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
 
-  user                 User           @relation(fields: [userId], references: [id])
-  events               PrinterEvent[]
-  jobs                 Job[]
-  spoolProfiles        SpoolProfile[]
+  user                    User           @relation(fields: [userId], references: [id])
+  events                  PrinterEvent[]
+  jobs                    Job[]
+  spoolProfiles           SpoolProfile[]
 }
 
 model PrinterEvent {
@@ -236,4 +236,90 @@ model JobComment {
 
   job         Job      @relation(fields: [jobId], references: [id])
   user        User     @relation(fields: [userId], references: [id])
+}
+
+// ── PricingScheme ─────────────────────────────────────────────────────────────
+// name maps to CapPricingType groups:
+//   "standard"  → pricingType: "standard" | "custom"
+//   "heroes"    → pricingType: "hero" | "patriotic"
+
+model PricingScheme {
+  id                  String        @id @default(cuid())
+  name                String        @unique // "standard" | "heroes"
+  discountTitle       String?       // "Heroes & First Responders" | "Happy Holidays" | null
+  discountIcon        String?       // icon key: "shield" | "star" | "tree" etc
+  baseBundledCents    Int           // 800 | 700
+  baseStandaloneCents Int           @default(1000)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  tiers               PricingTier[]
+  collections         Collection[]
+}
+
+model PricingTier {
+  id              String        @id @default(cuid())
+  pricingSchemeId String
+  minQty          Int           // 1 | 3 | 5 — matches getTierPrice() logic
+  unitPriceCents  Int           // standard: 700/600/500  heroes: 600/500/400
+
+  pricingScheme   PricingScheme @relation(fields: [pricingSchemeId], references: [id])
+
+  @@unique([pricingSchemeId, minQty])
+  @@index([pricingSchemeId])
+}
+
+// ── Collection ────────────────────────────────────────────────────────────────
+
+model Collection {
+  id                   String        @id @default(cuid())
+  slug                 String        @unique
+  name                 String
+  eyebrow              String?
+  subtitle             String?
+  description          String?
+  productImageOverride String?       // fallback: /collections/{slug}-product.png
+  carouselBgOverride   String?       // fallback: /collections/{slug}-carousel.png
+  componentKey         String?       // e.g. "StickFigureGenerator"
+  componentProps       Json?         // arbitrary props passed to componentKey
+  // maps to CapPricingType:
+  // "standard" scheme → pricingType "standard" or "custom"
+  // "heroes" scheme   → pricingType "hero" or "patriotic"
+  pricingSchemeId      String
+  sortOrder            Int           @default(0)
+  active               Boolean       @default(true)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+
+  pricingScheme        PricingScheme @relation(fields: [pricingSchemeId], references: [id])
+  items                Item[]
+
+  @@index([slug])
+  @@index([active, sortOrder])
+}
+
+// ── Item ──────────────────────────────────────────────────────────────────────
+
+model Item {
+  id                 String     @id @default(cuid())
+  collectionId       String
+  slug               String     @unique
+  name               String
+  description        String?
+  // pricingType wires directly to CapPricingType in pricing-config.ts
+  // "standard" | "hero" | "patriotic" | "custom"
+  pricingType        String
+  highDetailAvailable Boolean   @default(false) // if true, +$1 when highDetail in cart
+  heroOverride       String?    // fallback: /items/{slug}-hero.png
+  assembledOverride  String?    // fallback: /items/{slug}-assembled.png
+  inUseOverride      String?    // fallback: /items/{slug}-in-use.png
+  availableColorKeys String[]   // computed keys from inventory-colors.ts
+  sortOrder          Int        @default(0)
+  active             Boolean    @default(true)
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  collection         Collection @relation(fields: [collectionId], references: [id])
+
+  @@index([collectionId, active, sortOrder])
 }
