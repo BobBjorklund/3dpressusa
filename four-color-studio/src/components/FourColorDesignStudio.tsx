@@ -79,54 +79,62 @@ function removeTinyRuns(imageData: ImageData, minRun = 1): ImageData {
   const { width, height, data } = imageData;
 
   for (let y = 0; y < height; y += 1) {
+    // Pass 1: collect all runs in this row as {start, end (exclusive), color[4]}
+    type RowRun = { start: number; end: number; color: [number, number, number, number] };
+    const runs: RowRun[] = [];
     let runStart = 0;
-
     for (let x = 1; x <= width; x += 1) {
-      const prevIdx = (y * width + (x - 1)) * 4;
-      const prevColor = `${data[prevIdx]},${data[prevIdx + 1]},${data[prevIdx + 2]},${data[prevIdx + 3]}`;
-
-      const currColor =
-        x < width
-          ? (() => {
-            const i = (y * width + x) * 4;
-            return `${data[i]},${data[i + 1]},${data[i + 2]},${data[i + 3]}`;
-          })()
-          : null;
-
-      if (x === width || currColor !== prevColor) {
-        const runLength = x - runStart;
-
-        if (runLength < minRun) {
-          const leftColor =
-            runStart > 0
-              ? (() => {
-                const i = (y * width + (runStart - 1)) * 4;
-                return [data[i], data[i + 1], data[i + 2], data[i + 3]];
-              })()
-              : null;
-
-          const rightColor =
-            x < width
-              ? (() => {
-                const i = (y * width + x) * 4;
-                return [data[i], data[i + 1], data[i + 2], data[i + 3]];
-              })()
-              : leftColor;
-
-          const replacement = rightColor ?? leftColor;
-
-          if (replacement) {
-            for (let xx = runStart; xx < x; xx += 1) {
-              const i = (y * width + xx) * 4;
-              data[i] = replacement[0];
-              data[i + 1] = replacement[1];
-              data[i + 2] = replacement[2];
-              data[i + 3] = replacement[3];
-            }
-          }
-        }
-
+      const prevI = (y * width + (x - 1)) * 4;
+      const changed =
+        x === width ||
+        data[prevI] !== data[(y * width + x) * 4] ||
+        data[prevI + 1] !== data[(y * width + x) * 4 + 1] ||
+        data[prevI + 2] !== data[(y * width + x) * 4 + 2] ||
+        data[prevI + 3] !== data[(y * width + x) * 4 + 3];
+      if (changed) {
+        runs.push({
+          start: runStart,
+          end: x,
+          color: [data[prevI], data[prevI + 1], data[prevI + 2], data[prevI + 3]],
+        });
         runStart = x;
+      }
+    }
+
+    // Pass 2: for each short run, replace with the longer neighboring run's color.
+    // If a neighbor is also short, still prefer the one with opaque color.
+    for (let ri = 0; ri < runs.length; ri += 1) {
+      const run = runs[ri];
+      if (run.end - run.start >= minRun) continue;
+
+      const leftRun = ri > 0 ? runs[ri - 1] : null;
+      const rightRun = ri < runs.length - 1 ? runs[ri + 1] : null;
+
+      let replacement: [number, number, number, number] | null = null;
+
+      if (leftRun && rightRun) {
+        // Pick the longer neighbor; prefer opaque over transparent
+        const leftLen = leftRun.end - leftRun.start;
+        const rightLen = rightRun.end - rightRun.start;
+        const leftOpaque = leftRun.color[3] > 0;
+        const rightOpaque = rightRun.color[3] > 0;
+        if (leftOpaque && !rightOpaque) replacement = leftRun.color;
+        else if (rightOpaque && !leftOpaque) replacement = rightRun.color;
+        else replacement = leftLen >= rightLen ? leftRun.color : rightRun.color;
+      } else if (leftRun) {
+        replacement = leftRun.color;
+      } else if (rightRun) {
+        replacement = rightRun.color;
+      }
+
+      if (replacement) {
+        for (let xx = run.start; xx < run.end; xx += 1) {
+          const i = (y * width + xx) * 4;
+          data[i] = replacement[0];
+          data[i + 1] = replacement[1];
+          data[i + 2] = replacement[2];
+          data[i + 3] = replacement[3];
+        }
       }
     }
   }
@@ -237,7 +245,7 @@ function labDist(a: Lab, b: Lab): number {
 
 
 
-const MIN_FEATURE_MM = 0.4;
+const MIN_FEATURE_MM = 0.42;
 const TILE_SIZE_MM = 101.6;
 const CANVAS_SIZE = Math.round(TILE_SIZE_MM / MIN_FEATURE_MM); // 508
 const GRID_STEP = 1; // one canvas pixel = one printable feature
@@ -454,6 +462,28 @@ function floodFillRegion(
   return true;
 }
 
+function swapColorGlobal(
+  ctx: CanvasRenderingContext2D,
+  from: InventoryColor,
+  to: InventoryColor,
+): void {
+  const { width, height } = ctx.canvas;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const d = imageData.data;
+  const f = hexToRgb(from.hex);
+  const t = hexToRgb(to.hex);
+
+  for (let i = 0; i < d.length; i += 4) {
+    if (d[i] === f.r && d[i + 1] === f.g && d[i + 2] === f.b && d[i + 3] === 255) {
+      d[i] = t.r;
+      d[i + 1] = t.g;
+      d[i + 2] = t.b;
+    }
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+}
+
 function ColorChoiceButton({
   color,
   active,
@@ -559,9 +589,13 @@ export default function FourColorDesignStudio() {
   const [draggingShapeId, setDraggingShapeId] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<{ x: number; y: number } | null>(null);
   const [paletteSuggestions, setPaletteSuggestions] = useState<PaletteSuggestion[]>([]);
+  const [swapFromId, setSwapFromId] = useState<string>("");
+  const [swapToId, setSwapToId] = useState<string>("");
   const srcRef = useRef<HTMLCanvasElement | null>(null);
   const qRef = useRef<HTMLCanvasElement | null>(null);
   const baseQuantizedRef = useRef<ImageData | null>(null);
+  // When true, the next quantize effect run is skipped (used after color swap)
+  const skipNextQuantizeRef = useRef(false);
 
   const selColors = useMemo(
     () => inventoryColors.filter((c) => selIds.includes(c.id)),
@@ -1037,7 +1071,7 @@ export default function FourColorDesignStudio() {
     if (!exportCtx) return;
 
     const exportImageData = exportCtx.getImageData(0, 0, exportCanvas.width, exportCanvas.height);
-    const cleaned = removeTinyRuns(exportImageData, 1);
+    const cleaned = removeTinyRuns(exportImageData, 2);
     exportCtx.putImageData(cleaned, 0, 0);
 
     const { data, width, height } = exportCtx.getImageData(
@@ -1112,13 +1146,20 @@ export default function FourColorDesignStudio() {
         `<rect x="0" y="${(TILE_SIZE_MM - REG_MARK_SIZE_MM).toFixed(4)}" width="${REG_MARK_SIZE_MM}" height="${REG_MARK_SIZE_MM}" fill="${color.hex}"/>`
       );
 
+      // Collect horizontal runs, then merge vertically adjacent runs with
+      // the same x-start and width. Reduces rect count from O(pixels) to
+      // O(distinct rectangular regions), dramatically simplifying the
+      // geometry that Shapely and the slicer have to process.
+      type MergedRect = { x: number; y: number; w: number; h: number };
+      const mergedRects: MergedRect[] = [];
+      // open[key] = the last MergedRect still being extended downward
+      const open = new Map<string, MergedRect>();
+
       for (let y = 0; y < height; y += 1) {
         let runStart = -1;
-
         for (let x = 0; x <= width; x += 1) {
           const isEnd = x === width;
           let matches = false;
-
           if (!isEnd) {
             const idx = (y * width + x) * 4;
             matches =
@@ -1127,21 +1168,27 @@ export default function FourColorDesignStudio() {
               data[idx + 1] === rgb.g &&
               data[idx + 2] === rgb.b;
           }
-
-          if (matches && runStart < 0) {
-            runStart = x;
-          }
-
+          if (matches && runStart < 0) runStart = x;
           if ((!matches || isEnd) && runStart >= 0) {
-            const runWidth = x - runStart;
-
-            svgParts.push(
-              `<rect x="${(runStart * mmPerPixel).toFixed(4)}" y="${(y * mmPerPixel).toFixed(4)}" width="${(runWidth * mmPerPixel).toFixed(4)}" height="${mmPerPixel.toFixed(4)}" fill="#000000"/>`,
-            );
-
+            const runW = x - runStart;
+            const key = `${runStart},${runW}`;
+            const prev = open.get(key);
+            if (prev && prev.y + prev.h === y) {
+              prev.h += 1; // extend existing rect downward
+            } else {
+              const rect: MergedRect = { x: runStart, y, w: runW, h: 1 };
+              mergedRects.push(rect);
+              open.set(key, rect);
+            }
             runStart = -1;
           }
         }
+      }
+
+      for (const r of mergedRects) {
+        svgParts.push(
+          `<rect x="${(r.x * mmPerPixel).toFixed(4)}" y="${(r.y * mmPerPixel).toFixed(4)}" width="${(r.w * mmPerPixel).toFixed(4)}" height="${(r.h * mmPerPixel).toFixed(4)}" fill="#000000"/>`,
+        );
       }
 
       svgParts.push(`</svg>`);
@@ -1182,6 +1229,11 @@ pause
   }
 
   useEffect(() => {
+    if (skipNextQuantizeRef.current) {
+      skipNextQuantizeRef.current = false;
+      return;
+    }
+
     const sc = srcRef.current;
     const qc = qRef.current;
     if (!sc || !qc) return;
@@ -1214,15 +1266,16 @@ pause
 
     const { dw, dh, ox, oy } = fitRect(img.width, img.height, CANVAS_SIZE, CANVAS_SIZE);
 
+    sCtx.imageSmoothingEnabled = false;
     sCtx.drawImage(img, ox, oy, dw, dh);
     const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+
     const quantized = quantize(id, selColors);
     qCtx.putImageData(quantized, 0, 0);
     baseQuantizedRef.current = qCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     setUsageVersion((v) => v + 1);
     setLastEdit("No manual edits yet.");
-
 
   }, [img, selColors, bgColor]);
 
@@ -1272,6 +1325,7 @@ pause
 
     const { dw, dh, ox, oy } = fitRect(img.width, img.height, CANVAS_SIZE, CANVAS_SIZE);
 
+    sCtx.imageSmoothingEnabled = false;
     sCtx.drawImage(img, ox, oy, dw, dh);
     const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
     qCtx.putImageData(quantize(id, selColors), 0, 0);
@@ -1567,6 +1621,23 @@ pause
       setFillColorId(colorId);
       return;
     }
+  }
+
+  function doSwapColor(): void {
+    const ctx = qRef.current?.getContext("2d");
+    if (!ctx || !swapFromId || !swapToId) return;
+    const from = selColors.find((c) => c.id === swapFromId);
+    const to = inventoryColors.find((c) => c.id === swapToId);
+    if (!from || !to) return;
+    swapColorGlobal(ctx, from, to);
+    baseQuantizedRef.current = ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+    // Replace the old color slot with the new one — skip the quantize effect
+    skipNextQuantizeRef.current = true;
+    setSelIds((cur) => cur.map((id) => (id === swapFromId ? swapToId : id)));
+    setSwapFromId("");
+    setSwapToId("");
+    setUsageVersion((v) => v + 1);
+    setLastEdit(`Swapped ${from.name} → ${to.name}`);
   }
 
   function getActiveColorLabel(): string {
@@ -1884,6 +1955,55 @@ pause
                     />
                   ))}
                 </div>
+              </div>
+            </div>
+
+            <div style={s.subSection}>
+              <div style={s.subLabel}>Swap color</div>
+              <div style={{ display: "grid", gap: "8px" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "6px", alignItems: "center" }}>
+                  <select
+                    value={swapFromId}
+                    onChange={(e) => setSwapFromId(e.target.value)}
+                    style={{ ...inputStyle, fontSize: "11px", padding: "7px 8px" }}
+                  >
+                    <option value="">From…</option>
+                    {selColors.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <span style={{ color: "#64748b", fontSize: "14px", fontWeight: 700, textAlign: "center" }}>→</span>
+                  <select
+                    value={swapToId}
+                    onChange={(e) => setSwapToId(e.target.value)}
+                    style={{ ...inputStyle, fontSize: "11px", padding: "7px 8px" }}
+                  >
+                    <option value="">To…</option>
+                    {inventoryColors
+                      .filter((c) => !selIds.includes(c.id))
+                      .map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                  </select>
+                </div>
+                <button
+                  type="button"
+                  disabled={!swapFromId || !swapToId || swapFromId === swapToId}
+                  onClick={doSwapColor}
+                  style={{
+                    background: swapFromId && swapToId && swapFromId !== swapToId ? "rgba(255,255,255,0.10)" : "rgba(255,255,255,0.04)",
+                    border: "1px solid rgba(255,255,255,0.12)",
+                    borderRadius: "12px",
+                    color: swapFromId && swapToId && swapFromId !== swapToId ? "#f1f5f9" : "#475569",
+                    fontSize: "12px",
+                    fontWeight: 700,
+                    padding: "8px",
+                    cursor: swapFromId && swapToId && swapFromId !== swapToId ? "pointer" : "default",
+                    transition: "background 0.15s",
+                  }}
+                >
+                  Swap Everywhere
+                </button>
               </div>
             </div>
 

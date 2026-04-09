@@ -10,42 +10,42 @@ const INTRO_SLIDES: CarouselSlide[] = [
     eyebrow: "Core Product",
     title: "A modular hitch cover built to look better, last longer, and cost less to keep fresh.",
     body: "Swap the placard, not the whole unit. Built for outdoor use, designed for easy replacement, and made to give your truck a better-looking, better-fitting cover system.",
-    ctaLabel: "Shop Bundles",
-    ctaHref: "/bundles",
+    ctaLabel: "Shop Collections",
+    ctaHref: "/collections",
     priceLine: "Cover + cap: $15",
     bgClass: "from-zinc-900 via-neutral-900 to-black",
   },
   {
     id: "main-pricing",
-    eyebrow: "Bundle Pricing",
-    title: "Start simple. Swap often. Keep the hardware.",
-    body: "Cover + cap for $15, cover + 2 caps for $20, and bulk pricing that rewards people actually buying more than one.",
-    ctaLabel: "See Bundle Options",
-    ctaHref: "/bundles",
-    priceLine: "3-cap bundle: $18 • 5-cap bundle: $25",
+    eyebrow: "Quantity Pricing",
+    title: "The more caps you buy, the less each one costs.",
+    body: "Pick any cap from any collection. Pricing tiers are based on your total quantity — mix and match freely across the entire catalog.",
+    ctaLabel: "Browse Collections",
+    ctaHref: "/collections",
+    priceLine: "1 cap: $7 · 3 caps: $6 · 5+ caps: $5",
     bgClass: "from-slate-900 via-stone-900 to-zinc-950",
   },
 ];
 
 const OUTRO_SLIDES: CarouselSlide[] = [
+  // {
+  //   id: "design-tool",
+  //   eyebrow: "Design Your Own",
+  //   title: "Don't see anything you like?",
+  //   body: "Build your own placard. Great for sports-inspired designs, names, numbers, rec league ideas, and custom looks you want on your truck.",
+  //   ctaLabel: "Open Design Tool",
+  //   ctaHref: "/design",
+  //   priceLine: "Standard pricing",
+  //   bgClass: "from-orange-950 via-zinc-900 to-neutral-950",
+  // },
   {
-    id: "design-tool",
-    eyebrow: "Design Your Own",
-    title: "Don't see anything you like?",
-    body: "Build your own placard. Great for sports-inspired designs, names, numbers, rec league ideas, and custom looks you want on your truck.",
-    ctaLabel: "Open Design Tool",
-    ctaHref: "/design",
-    priceLine: "Standard pricing • high-detail mode: +$1 per cap",
-    bgClass: "from-orange-950 via-zinc-900 to-neutral-950",
-  },
-  {
-    id: "bundle-pricing",
-    eyebrow: "Build Your Bundle",
+    id: "mix-and-match",
+    eyebrow: "Mix & Match",
     title: "Mix collections, house designs, and custom caps your way.",
-    body: "The more caps you buy, the better the pricing gets. Buy across collections, keep the discounts, and build the setup you actually want.",
-    ctaLabel: "Build a Bundle",
-    ctaHref: "/bundles",
-    priceLine: "Standard cover add-on: +$8 • Hero/Patriotic cover add-on: +$7",
+    body: "No bundles to pick from — just pick what you want. Buy across collections, keep the quantity discount, and build the exact setup you actually want.",
+    ctaLabel: "Browse Collections",
+    ctaHref: "/collections",
+    priceLine: "Standard cover add-on: +$8 · Hero/Patriotic cover add-on: +$7",
     bgClass: "from-neutral-950 via-zinc-900 to-neutral-800",
   },
 ];
@@ -173,12 +173,12 @@ export default async function HomePage() {
               body="Built with high-quality materials chosen for outdoor use, fit, protection, and easy replacement when you want a new look without rebuying the whole setup."
               tintClass="bg-gradient-to-br from-blue-500/14 via-white/[0.06] to-white/[0.03]"
             />
-            <FeatureCard
+            {/* <FeatureCard
               eyebrow="Your lane, your way"
               title="House designs or custom work"
               body="Shop ready-made collections or head into the design tool for sports-inspired designs, names, numbers, rec league ideas, and your own custom look."
               tintClass="bg-gradient-to-br from-amber-400/16 via-white/[0.06] to-white/[0.03]"
-            />
+            /> */}
           </div>
         </div>
       </section>
@@ -191,7 +191,7 @@ export default async function HomePage() {
             <div className="absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.04))]" />
             <div className="absolute -bottom-12 left-10 h-36 w-36 rounded-full bg-red-500/10 blur-3xl" />
             <div className="absolute -top-10 right-20 h-40 w-40 rounded-full bg-amber-400/10 blur-3xl" />
-            <div className="relative">
+            {/* <div className="relative">
               <div className="text-xs font-black uppercase tracking-[0.25em] text-orange-300">Custom work</div>
               <h2 className="mt-3 text-3xl font-black tracking-tight">Don't see anything you like?</h2>
               <p className="mt-4 max-w-3xl text-lg leading-8 text-orange-50/90">
@@ -202,10 +202,10 @@ export default async function HomePage() {
                   Open Design Tool
                 </Link>
                 <div className="rounded-full border border-orange-300/25 bg-orange-400/15 px-4 py-3 text-sm font-bold text-orange-50">
-                  Standard pricing • high-detail mode +$1 per cap
+                  Standard pricing
                 </div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>

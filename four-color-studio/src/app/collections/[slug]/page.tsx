@@ -4,10 +4,9 @@ import {
   getCollection,
   collectionCarouselBg,
   collectionProductImg,
-  itemHeroImg,
   formatTiers,
 } from "@/lib/storefront/collections";
-import ItemImage from "@/components/ItemImage";
+import ItemCard from "@/components/ItemCard";
 
 export default async function CollectionPage({
   params,
@@ -82,28 +81,12 @@ export default async function CollectionPage({
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {collection.items.map((item) => (
-              <div
+              <ItemCard
                 key={item.id}
-                className="group overflow-hidden rounded-[1.5rem] border border-white/10 bg-zinc-950/60 shadow-[0_8px_24px_rgba(0,0,0,0.20)] backdrop-blur-sm transition hover:border-white/20 hover:bg-zinc-950/75"
-              >
-                <div className="relative aspect-square overflow-hidden bg-zinc-900/80">
-                  <ItemImage src={itemHeroImg(item)} alt={item.name} />
-                </div>
-                <div className="p-4">
-                  <h3 className="font-black leading-tight">{item.name}</h3>
-                  {item.description && (
-                    <p className="mt-1 text-sm text-zinc-400 line-clamp-2">
-                      {item.description}
-                    </p>
-                  )}
-                  <div className="mt-3 text-xs font-bold text-amber-300">
-                    {formatTiers(collection.pricingScheme.tiers)}
-                    {item.highDetailAvailable && (
-                      <span className="ml-1 text-white/40">· HD +$1</span>
-                    )}
-                  </div>
-                </div>
-              </div>
+                item={item}
+                collectionSlug={collection.slug}
+                tiers={collection.pricingScheme.tiers}
+              />
             ))}
           </div>
         )}

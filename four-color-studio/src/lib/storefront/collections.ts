@@ -27,6 +27,21 @@ export async function getCollection(slug: string) {
   });
 }
 
+export async function getItem(itemSlug: string) {
+  return prisma.item.findUnique({
+    where: { slug: itemSlug },
+    include: {
+      collection: {
+        include: {
+          pricingScheme: {
+            include: { tiers: { orderBy: { minQty: 'asc' } } },
+          },
+        },
+      },
+    },
+  });
+}
+
 // ── Image path helpers ────────────────────────────────────────────────────────
 // Convention: /public/collections/{slug}-carousel.png, /public/collections/{slug}-product.png
 // Override fields in DB take precedence.

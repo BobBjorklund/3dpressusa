@@ -63,13 +63,9 @@ export default function NavBar({
             Collections
           </Link>
 
-          <Link href="/bundles" className="rounded-full px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white">
-            Bundles
-          </Link>
-
-          <Link href="/design" className="ml-2 rounded-full bg-white px-4 py-2 text-sm font-black text-black transition hover:bg-zinc-200">
+          {/* <Link href="/design" className="ml-2 rounded-full bg-white px-4 py-2 text-sm font-black text-black transition hover:bg-zinc-200">
             Design Your Own
-          </Link>
+          </Link> */}
         </nav>
 
         {/* Mobile hamburger button */}
@@ -115,10 +111,6 @@ export default function NavBar({
 
           <Link href="/collections" onClick={() => setOpen(false)} className="block rounded-xl px-3 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07]">
             Collections
-          </Link>
-
-          <Link href="/bundles" onClick={() => setOpen(false)} className="block rounded-xl px-3 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07]">
-            Bundles
           </Link>
 
           <div className="mt-4">

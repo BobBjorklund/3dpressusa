@@ -22,9 +22,8 @@ function SlideCard({ slide }: { slide: CarouselSlide }) {
 
   return (
     <div
-      className={`group relative min-w-full overflow-hidden rounded-[2rem] border-2 border-white/20 shadow-[0_20px_80px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] ${
-        hasBgImage ? "bg-black" : `bg-gradient-to-br ${slide.bgClass}`
-      }`}
+      className={`group relative min-w-full overflow-hidden rounded-[2rem] border-2 border-white/20 shadow-[0_20px_80px_rgba(0,0,0,0.35),inset_0_1px_0_rgba(255,255,255,0.22)] ${hasBgImage ? "bg-black" : `bg-gradient-to-br ${slide.bgClass}`
+        }`}
     >
       {hasBgImage && (
         <img
@@ -108,22 +107,42 @@ export default function HomeCarousel({ slides }: { slides: CarouselSlide[] }) {
       <div className="relative">
         <SlideCard slide={activeSlide} />
 
+        {/* Prev — full-height touch target, clipped visual child */}
         <button
           type="button"
           onClick={goPrev}
           aria-label="Previous slide"
-          className="absolute left-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-lg backdrop-blur transition hover:bg-black/65"
+          className="absolute left-0 top-1/2 -translate-y-1/2 flex h-36 w-8 items-center justify-center"
         >
-          ←
+          <span
+            aria-hidden="true"
+            style={{
+              clipPath: "polygon(0 8%, 100% 18%, 100% 82%, 0 92%)",
+              background: "linear-gradient(to right, rgba(255,255,255,0.22), rgba(255,255,255,0.06))",
+              boxShadow: "inset -1px 0 0 rgba(255,255,255,0.18)",
+            }}
+            className="absolute inset-0 backdrop-blur-sm transition"
+          />
+          <span className="relative text-lg font-black text-white/80">‹</span>
         </button>
 
+        {/* Next — full-height touch target, clipped visual child */}
         <button
           type="button"
           onClick={goNext}
           aria-label="Next slide"
-          className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full border border-white/15 bg-black/45 px-4 py-3 text-sm font-black text-white shadow-lg backdrop-blur transition hover:bg-black/65"
+          className="absolute right-0 top-1/2 -translate-y-1/2 flex h-36 w-8 items-center justify-center"
         >
-          →
+          <span
+            aria-hidden="true"
+            style={{
+              clipPath: "polygon(0 18%, 100% 8%, 100% 92%, 0 82%)",
+              background: "linear-gradient(to left, rgba(255,255,255,0.22), rgba(255,255,255,0.06))",
+              boxShadow: "inset 1px 0 0 rgba(255,255,255,0.18)",
+            }}
+            className="absolute inset-0 backdrop-blur-sm transition"
+          />
+          <span className="relative text-lg font-black text-white/80">›</span>
         </button>
       </div>
 
@@ -139,9 +158,8 @@ export default function HomeCarousel({ slides }: { slides: CarouselSlide[] }) {
               type="button"
               onClick={() => setActiveIndex(index)}
               aria-label={`Go to ${slide.title}`}
-              className={`h-3 rounded-full transition ${
-                index === activeIndex ? "w-10 bg-white" : "w-3 bg-white/40 hover:bg-white/60"
-              }`}
+              className={`h-3 rounded-full transition ${index === activeIndex ? "w-10 bg-white" : "w-3 bg-white/40 hover:bg-white/60"
+                }`}
             />
           ))}
         </div>

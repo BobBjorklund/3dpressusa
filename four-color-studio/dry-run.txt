@@ -1,0 +1,9 @@
+﻿Fetching slugs from DB...
+Found 99 active items.
+
+-- airforce-battle-tested
+  [SKIP] not a camo product line
+
+-- airforce-camo-snow
+  [INFO] no logo for 'airforce' ù using placeholder diamond
+  [dry-run] would write to C:\Users\owner\Desktop\printingBiz\site\3dpressusa\four-color-studio\factory\output\airforce-camo-snow/
