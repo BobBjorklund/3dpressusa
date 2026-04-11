@@ -65,7 +65,7 @@ export default async function CollectionsPage() {
                     <p className="mt-1 text-sm text-zinc-300 line-clamp-2">{c.subtitle}</p>
                   )}
                   <div className="mt-3 text-xs font-bold text-amber-300">
-                    {formatTiers(c.pricingScheme.tiers)}
+                    {formatTiers(c.pricingScheme.name)}
                   </div>
                   <div className="mt-4 inline-flex w-fit items-center gap-2 rounded-full bg-white px-5 py-2 text-sm font-black text-black transition group-hover:bg-zinc-200">
                     Shop Collection <span aria-hidden="true">→</span>

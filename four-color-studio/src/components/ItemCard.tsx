@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { configTiersForDisplay } from "@/lib/storefront/pricing-config";
 
 type Item = {
   slug: string;
@@ -9,22 +10,16 @@ type Item = {
   highDetailAvailable: boolean;
 };
 
-type Tier = {
-  minQty: number;
-  unitPriceCents: number;
-};
-
 export default function ItemCard({
   item,
   collectionSlug,
-  tiers,
+  schemeName,
 }: {
   item: Item;
   collectionSlug: string;
-  tiers: Tier[];
+  schemeName: string;
 }) {
-  const priceLine = [...tiers]
-    .sort((a, b) => a.minQty - b.minQty)
+  const priceLine = configTiersForDisplay(schemeName)
     .map((t) => `${t.minQty}/$${(t.unitPriceCents / 100).toFixed(0)}`)
     .join(" · ");
 

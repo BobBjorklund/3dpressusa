@@ -23,7 +23,8 @@ type CartContextValue = {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  itemCount: number;
+  itemCount: number;      // total quantity of all items (caps + covers)
+  capCount: number;       // cap-only quantity — used for tier hints
   subtotal: number;       // dollars, from calculateCart
   cartItems: CartItem[];  // stripped to CartItem shape for checkout API
 };
@@ -89,6 +90,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const { subtotal } = entries.length > 0 ? calculateCart(cartItems) : { subtotal: 0 };
   const itemCount = entries.reduce((sum, e) => sum + e.quantity, 0);
+  const capCount = entries.filter((e) => e.type === "cap").reduce((sum, e) => sum + e.quantity, 0);
 
   return (
     <CartContext.Provider
@@ -102,6 +104,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         openCart: () => setIsOpen(true),
         closeCart: () => setIsOpen(false),
         itemCount,
+        capCount,
         subtotal,
         cartItems,
       }}

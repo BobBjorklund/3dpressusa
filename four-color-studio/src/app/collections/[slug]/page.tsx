@@ -59,7 +59,7 @@ export default async function CollectionPage({
                 <p className="mt-4 max-w-2xl text-zinc-400">{collection.description}</p>
               )}
               <div className="mt-5 w-fit rounded-full border border-amber-300/30 bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-100">
-                {formatTiers(collection.pricingScheme.tiers)}
+                {formatTiers(collection.pricingScheme.name)}
               </div>
             </div>
 
@@ -85,7 +85,7 @@ export default async function CollectionPage({
                 key={item.id}
                 item={item}
                 collectionSlug={collection.slug}
-                tiers={collection.pricingScheme.tiers}
+                schemeName={collection.pricingScheme.name}
               />
             ))}
           </div>

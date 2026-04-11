@@ -12,8 +12,19 @@ const INTRO_SLIDES: CarouselSlide[] = [
     body: "Swap the placard, not the whole unit. Built for outdoor use, designed for easy replacement, and made to give your truck a better-looking, better-fitting cover system.",
     ctaLabel: "Shop Collections",
     ctaHref: "/collections",
-    priceLine: "Cover + cap: $15",
+    priceLine: "Full set: $20 · Base unit: $10 · Cap: $10",
     bgClass: "from-zinc-900 via-neutral-900 to-black",
+  },
+  {
+    id: "base-unit",
+    eyebrow: "The Hardware",
+    title: "The base unit that makes it all work.",
+    body: "Receiver-mounted base with TPU protective boot and PETG retaining clip. Buy it once — swap caps whenever you want a new look.",
+    ctaLabel: "Get the Base Unit",
+    ctaHref: "/base-unit",
+    priceLine: "$10 standard · $9 with hero or patriotic caps",
+    bgClass: "from-zinc-900 via-neutral-900 to-black",
+    productImageUrl: "/items/placeholder.png",
   },
   {
     id: "main-pricing",
@@ -22,7 +33,7 @@ const INTRO_SLIDES: CarouselSlide[] = [
     body: "Pick any cap from any collection. Pricing tiers are based on your total quantity — mix and match freely across the entire catalog.",
     ctaLabel: "Browse Collections",
     ctaHref: "/collections",
-    priceLine: "1 cap: $7 · 3 caps: $6 · 5+ caps: $5",
+    priceLine: "1 cap: $10 · 3 caps: $9 · 5+ caps: $8",
     bgClass: "from-slate-900 via-stone-900 to-zinc-950",
   },
 ];
@@ -107,7 +118,7 @@ export default async function HomePage() {
     body: c.description ?? "",
     ctaLabel: `Shop ${c.name}`,
     ctaHref: `/collections/${c.slug}`,
-    priceLine: formatTiers(c.pricingScheme.tiers),
+    priceLine: formatTiers(c.pricingScheme.name),
     bgClass: "from-zinc-900 via-neutral-900 to-black",
     backgroundImageUrl: collectionCarouselBg(c),
     productImageUrl: collectionProductImg(c),
@@ -173,12 +184,12 @@ export default async function HomePage() {
               body="Built with high-quality materials chosen for outdoor use, fit, protection, and easy replacement when you want a new look without rebuying the whole setup."
               tintClass="bg-gradient-to-br from-blue-500/14 via-white/[0.06] to-white/[0.03]"
             />
-            {/* <FeatureCard
-              eyebrow="Your lane, your way"
-              title="House designs or custom work"
-              body="Shop ready-made collections or head into the design tool for sports-inspired designs, names, numbers, rec league ideas, and your own custom look."
+            <FeatureCard
+              eyebrow="The hardware"
+              title="The base unit that makes it all work"
+              body="Receiver-mounted base with TPU protective boot and PETG retaining clip. Buy it once — swap caps whenever you want a new look. $10 standard, $9 with hero caps."
               tintClass="bg-gradient-to-br from-amber-400/16 via-white/[0.06] to-white/[0.03]"
-            /> */}
+            />
           </div>
         </div>
       </section>

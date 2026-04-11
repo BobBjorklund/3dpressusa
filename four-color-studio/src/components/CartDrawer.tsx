@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCart } from "@/context/CartContext";
 import { calculateCart } from "@/lib/storefront/pricing";
@@ -8,7 +9,7 @@ import BuyButton from "./BuyButton";
 const ThreeMFStatic = dynamic(() => import("./ThreeMFStatic"), { ssr: false });
 
 export default function CartDrawer() {
-  const { entries, cartItems, isOpen, closeCart, removeItem, updateQty, itemCount, subtotal } = useCart();
+  const { entries, cartItems, isOpen, closeCart, removeItem, updateQty, itemCount, subtotal, capCount } = useCart();
 
   // Per-entry unit prices from the breakdown (tier depends on full order qty)
   const breakdown = entries.length > 0 ? calculateCart(cartItems).breakdown : [];
@@ -139,15 +140,30 @@ export default function CartDrawer() {
                 );
               })}
 
-              {/* Tier hint */}
-              {itemCount < 3 && (
+              {/* Base unit upsell */}
+              {!entries.some((e) => e.type === "cover") && (
+                <Link
+                  href="/base-unit"
+                  onClick={closeCart}
+                  className="flex items-center gap-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 transition hover:bg-amber-400/15"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black text-amber-200">Complete your setup</p>
+                    <p className="text-xs text-white/50 mt-0.5">Add a base unit — receiver mount + TPU boot + PETG clip</p>
+                  </div>
+                  <span className="text-sm font-black text-amber-200 flex-shrink-0">$10 →</span>
+                </Link>
+              )}
+
+              {/* Tier hint — caps only, cover doesn't count toward discount */}
+              {capCount > 0 && capCount < 3 && (
                 <p className="rounded-xl bg-amber-400/10 px-4 py-2 text-xs text-amber-300">
-                  Add {3 - itemCount} more cap{3 - itemCount > 1 ? "s" : ""} to unlock the 3-cap price.
+                  Add {3 - capCount} more cap{3 - capCount > 1 ? "s" : ""} to unlock the 3-cap price.
                 </p>
               )}
-              {itemCount >= 3 && itemCount < 5 && (
+              {capCount >= 3 && capCount < 5 && (
                 <p className="rounded-xl bg-amber-400/10 px-4 py-2 text-xs text-amber-300">
-                  Add {5 - itemCount} more cap{5 - itemCount > 1 ? "s" : ""} to unlock the best price.
+                  Add {5 - capCount} more cap{5 - capCount > 1 ? "s" : ""} to unlock the best price.
                 </p>
               )}
             </div>

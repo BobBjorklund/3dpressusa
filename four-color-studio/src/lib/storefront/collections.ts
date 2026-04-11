@@ -68,10 +68,12 @@ export function itemInUseImg(i: { slug: string; inUseOverride?: string | null })
 }
 
 // ── Pricing display ───────────────────────────────────────────────────────────
-// Formats tiers as "1/$7 · 3/$6 · 5/$5" (sorted ascending by minQty)
-export function formatTiers(tiers: { minQty: number; unitPriceCents: number }[]) {
-  return [...tiers]
-    .sort((a, b) => a.minQty - b.minQty)
+// Formats tiers from the hardcoded config so display always matches checkout.
+// Pass collection.pricingScheme.name ("standard" | "heroes").
+import { configTiersForDisplay } from './pricing-config';
+
+export function formatTiers(schemeName: string): string {
+  return configTiersForDisplay(schemeName)
     .map((t) => `${t.minQty}/$${(t.unitPriceCents / 100).toFixed(0)}`)
     .join(' · ');
 }

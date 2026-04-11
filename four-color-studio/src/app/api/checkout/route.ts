@@ -42,8 +42,22 @@ export async function POST(req: NextRequest) {
   const items: CartItem[] = body.items;
   const displayNames: Record<string, string> = body.displayNames ?? {};
 
-  if (!items || items.length === 0) {
+  if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+  }
+
+  const VALID_TYPES = new Set(['cap', 'cover']);
+  const VALID_PRICING = new Set(['standard', 'hero', 'patriotic', 'custom']);
+  for (const item of items) {
+    if (!VALID_TYPES.has(item.type)) {
+      return NextResponse.json({ error: 'Invalid item type' }, { status: 400 });
+    }
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 50) {
+      return NextResponse.json({ error: 'Invalid quantity' }, { status: 400 });
+    }
+    if (item.pricingType && !VALID_PRICING.has(item.pricingType)) {
+      return NextResponse.json({ error: 'Invalid pricing type' }, { status: 400 });
+    }
   }
 
   const { breakdown, subtotal } = calculateCart(items);
@@ -54,7 +68,7 @@ export async function POST(req: NextRequest) {
   const line_items = breakdown.map((b: any) => ({
     price_data: {
       currency: 'usd',
-      product_data: { name: displayNames[b.id] ?? b.id },
+      product_data: { name: (displayNames[b.id] ?? b.id).slice(0, 250) },
       unit_amount: Math.round(b.unitPrice * 100),
     },
     quantity: b.quantity,

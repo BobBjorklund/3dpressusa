@@ -4,7 +4,7 @@ import {
   getItem,
   collectionCarouselBg,
 } from "@/lib/storefront/collections";
-import type { CapPricingType } from "@/lib/storefront/pricing-config";
+import { configTiersForDisplay, type CapPricingType } from "@/lib/storefront/pricing-config";
 import ItemDisplay from "@/components/ItemDisplay";
 import AddToCartButton from "@/components/AddToCartButton";
 
@@ -19,7 +19,7 @@ export default async function ItemPage({
   if (!item || item.collection.slug !== slug) notFound();
 
   const collection = item.collection;
-  const tiers = collection.pricingScheme.tiers;
+  const tiers = configTiersForDisplay(collection.pricingScheme.name);
 
   return (
     <main className="relative min-h-screen text-white">
@@ -79,7 +79,7 @@ export default async function ItemPage({
             <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
               <div className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50 mb-3">Pricing</div>
               <div className="flex flex-wrap gap-3">
-                {[...tiers].sort((a, b) => a.minQty - b.minQty).map((tier) => (
+                {tiers.map((tier) => (
                   <div
                     key={tier.minQty}
                     className="rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-center"
