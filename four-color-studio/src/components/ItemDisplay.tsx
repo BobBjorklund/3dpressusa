@@ -3,9 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 
-const ThreeMFViewer = dynamic(() => import("./ThreeMFViewer"), { ssr: false });
+const ThreeMFStatic = dynamic(() => import("./ThreeMFStatic"), { ssr: false });
 
-// Inlined to avoid pulling prisma into the client bundle
 function resolveHeroImg(slug: string, heroOverride?: string | null) {
   return heroOverride ?? `/items/${slug}-hero.png`;
 }
@@ -43,7 +42,7 @@ export default function ItemDisplay({
   if (show3mf) {
     return (
       <div ref={ref} className="h-full w-full">
-        <ThreeMFViewer url={`/items/${slug}.3mf`} />
+        <ThreeMFStatic url={`/items/${slug}.3mf`} />
       </div>
     );
   }

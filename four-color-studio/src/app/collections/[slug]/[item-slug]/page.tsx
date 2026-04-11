@@ -4,6 +4,7 @@ import {
   getItem,
   collectionCarouselBg,
 } from "@/lib/storefront/collections";
+import type { CapPricingType } from "@/lib/storefront/pricing-config";
 import ItemDisplay from "@/components/ItemDisplay";
 import AddToCartButton from "@/components/AddToCartButton";
 
@@ -103,7 +104,14 @@ export default async function ItemPage({
             </div>
 
             {/* Add to cart */}
-            <AddToCartButton item={{ slug: item.slug, name: item.name }} />
+            <AddToCartButton
+              item={{
+                slug: item.slug,
+                name: item.name,
+                pricingType: item.pricingType as CapPricingType,
+                highDetailAvailable: item.highDetailAvailable,
+              }}
+            />
 
           </div>
         </div>

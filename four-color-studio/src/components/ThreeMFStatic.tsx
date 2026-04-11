@@ -42,7 +42,14 @@ function parseMeshFromObject(obj: Element) {
   return { positions, indices };
 }
 
-export default function ThreeMFViewer({ url }: { url: string }) {
+// Fixed 3/4 front-top angle — no controls, renders once, disposes immediately.
+export default function ThreeMFStatic({
+  url,
+  className,
+}: {
+  url: string;
+  className?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -50,13 +57,10 @@ export default function ThreeMFViewer({ url }: { url: string }) {
     if (!container) return;
 
     let cancelled = false;
-    let animId = 0;
-    let rendererEl: HTMLCanvasElement | null = null;
 
-    async function init(el: HTMLDivElement) {
-      const [THREE, { OrbitControls }, { default: JSZip }] = await Promise.all([
+    async function render(el: HTMLDivElement) {
+      const [THREE, { default: JSZip }] = await Promise.all([
         import("three"),
-        import("three/examples/jsm/controls/OrbitControls.js"),
         import("jszip"),
       ]);
 
@@ -68,46 +72,34 @@ export default function ThreeMFViewer({ url }: { url: string }) {
       if (cancelled) return;
 
       const zip = await JSZip.loadAsync(buf);
-
       const isBambu = !!zip.file("Metadata/project_settings.config");
       const meshes: MeshData[] = [];
 
       if (isBambu) {
-        // 1. Extruder → hex from project_settings.config
-        console.log('isBambu:', isBambu);
-        console.log('url:', url);
         const projectJson = await zip.file("Metadata/project_settings.config")!.async("text");
         const project = JSON.parse(projectJson);
         const extruderColors: string[] = project.filament_colour ?? [];
-        const getExtruderColor = (extruder: number) =>
-          extruderColors[extruder - 1] ?? "#9ca3af";
+        const getExtruderColor = (extruder: number) => extruderColors[extruder - 1] ?? "#9ca3af";
 
-        // 2. Part → extruder from model_settings.config
         const settingsXml = await zip.file("Metadata/model_settings.config")!.async("text");
         const settingsDoc = new DOMParser().parseFromString(settingsXml, "text/xml");
         const partExtruderMap: Record<string, number> = {};
-        // Get object-level extruder as fallback
         const objectExtruder = parseInt(
           settingsDoc.querySelector('object > metadata[key="extruder"]')?.getAttribute("value") ?? "1",
           10
         );
-
         settingsDoc.querySelectorAll("part").forEach((part) => {
           const id = part.getAttribute("id") ?? "";
           const extruderMeta = part.querySelector('metadata[key="extruder"]');
           const extruder = extruderMeta
             ? parseInt(extruderMeta.getAttribute("value") ?? "1", 10)
-            : objectExtruder; // inherit from object if not set on part
+            : objectExtruder;
           partExtruderMap[id] = extruder;
         });
 
-        console.log('extruderColors:', extruderColors);
-        console.log('partExtruderMap:', partExtruderMap);
-        // 3. Root model → component list
         const rootXml = await zip.file("3D/3dmodel.model")!.async("text");
         const rootDoc = new DOMParser().parseFromString(rootXml, "text/xml");
         const components = rootDoc.querySelectorAll("components > component");
-
         const objectFileCache: Record<string, Document> = {};
         let partIndex = 1;
 
@@ -116,18 +108,15 @@ export default function ThreeMFViewer({ url }: { url: string }) {
           const objectId = component.getAttribute("objectid") ?? "1";
           const transformAttr = component.getAttribute("transform");
 
-          // Parse transform, negating z translation to bring layers to front face
           let matrix: import("three").Matrix4 | null = null;
           if (transformAttr) {
             const v = transformAttr.trim().split(/\s+/).map(Number);
             if (v.length === 12) {
               matrix = new THREE.Matrix4();
-              console.log(`part ${partIndex} transform:`, transformAttr, '→ z:', v?.[11]);
-
               matrix.set(
                 v[0], v[3], v[6], v[9],
                 v[1], v[4], v[7], v[10],
-                v[2], v[5], v[8], v[11] + 6.015,  // shift layers to top of placard
+                v[2], v[5], v[8], v[11] + 6.015,
                 0, 0, 0, 1
               );
             }
@@ -148,29 +137,20 @@ export default function ThreeMFViewer({ url }: { url: string }) {
           if (!mesh) continue;
 
           const extruder = partExtruderMap[String(partIndex)] ?? 1;
-          const color = getExtruderColor(extruder);
-
-          meshes.push({ ...mesh, color, matrix });
+          meshes.push({ ...mesh, color: getExtruderColor(extruder), matrix });
           partIndex++;
         }
-
       } else {
-        // Standard 3MF
         const modelFile = zip.file("3D/3dmodel.model");
         if (!modelFile || cancelled) return;
-
         const xml = await modelFile.async("text");
         if (cancelled) return;
-
         const doc = new DOMParser().parseFromString(xml, "text/xml");
         doc.querySelectorAll("resources > object").forEach((obj) => {
           const name = obj.getAttribute("name") ?? "";
-          const segments = name.split("-");
-          const lastSegment = segments[segments.length - 1]?.toLowerCase() ?? "";
-
+          const lastSegment = name.split("-").pop()?.toLowerCase() ?? "";
           const isHex = /^[0-9a-f]{6}$/.test(lastSegment);
           const color = isHex ? `#${lastSegment}` : (COLOR_MAP[lastSegment] ?? "#9ca3af");
-
           const mesh = parseMeshFromObject(obj);
           if (mesh) meshes.push({ ...mesh, color, matrix: null });
         });
@@ -178,24 +158,16 @@ export default function ThreeMFViewer({ url }: { url: string }) {
 
       if (cancelled || !meshes.length) return;
 
-      // Scene setup
-      const w = el.clientWidth || 200;
-      const h = el.clientHeight || 200;
+      const w = el.clientWidth || 300;
+      const h = el.clientHeight || 300;
 
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.setClearColor(0x0f172a, 0);
-      rendererEl = renderer.domElement;
-      el.appendChild(rendererEl);
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 2000);
-      const controls = new OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.06;
-      controls.autoRotate = true;
-      controls.autoRotateSpeed = 1.5;
 
       scene.add(new THREE.AmbientLight(0xffffff, 0.7));
       const sun = new THREE.DirectionalLight(0xffffff, 1.4);
@@ -206,26 +178,19 @@ export default function ThreeMFViewer({ url }: { url: string }) {
       scene.add(fill);
 
       const group = new THREE.Group();
-
       meshes.forEach(({ positions, indices, color, matrix }) => {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
         geometry.setIndex(new THREE.BufferAttribute(indices, 1));
         geometry.computeVertexNormals();
-
-        const material = new THREE.MeshStandardMaterial({
-          color,
-          roughness: 0.65,
-          metalness: 0.05,
-        });
-
+        const material = new THREE.MeshStandardMaterial({ color, roughness: 0.65, metalness: 0.05 });
         const mesh = new THREE.Mesh(geometry, material);
         if (matrix) mesh.applyMatrix4(matrix);
         group.add(mesh);
       });
 
-      // Flip whole group — both standard and Bambu are printed face-down
-      group.rotation.y = Math.PI;
+      // Same flip as the interactive viewer, plus a fixed 3/4 angle
+      group.rotation.y = Math.PI + 0.45;
       group.rotation.z = Math.PI;
 
       scene.add(group);
@@ -236,55 +201,32 @@ export default function ThreeMFViewer({ url }: { url: string }) {
       const maxDim = Math.max(size.x, size.y, size.z) || 1;
 
       group.position.sub(center);
-      camera.position.set(0, maxDim * 0.55, maxDim * 2.0);
+
+      // Slightly elevated 3/4 front angle
+      camera.position.set(maxDim * 0.2, maxDim * 0.6, maxDim * 2.0);
       camera.near = maxDim * 0.001;
       camera.far = maxDim * 20;
       camera.updateProjectionMatrix();
       camera.lookAt(0, 0, 0);
-      controls.update();
 
-      const ro = new ResizeObserver(() => {
-        const nw = el.clientWidth;
-        const nh = el.clientHeight;
-        if (!nw || !nh) return;
-        camera.aspect = nw / nh;
-        camera.updateProjectionMatrix();
-        renderer.setSize(nw, nh);
-      });
-      ro.observe(el);
+      // Render once, capture to image, dispose WebGL immediately
+      renderer.render(scene, camera);
+      const dataUrl = renderer.domElement.toDataURL("image/png");
+      renderer.dispose();
 
-      function animate() {
-        if (cancelled) return;
-        animId = requestAnimationFrame(animate);
-        controls.update();
-        renderer.render(scene, camera);
-      }
-      animate();
+      if (cancelled) return;
 
-      return () => {
-        ro.disconnect();
-        cancelAnimationFrame(animId);
-        renderer.dispose();
-        if (rendererEl && el.contains(rendererEl)) el.removeChild(rendererEl);
-      };
+      const img = document.createElement("img");
+      img.src = dataUrl;
+      img.className = "h-full w-full object-contain";
+      img.alt = "";
+      el.appendChild(img);
     }
 
-    let cleanupFn: (() => void) | undefined;
-    init(container).then((fn) => { cleanupFn = fn; });
+    render(container);
 
-    return () => {
-      cancelled = true;
-      cancelAnimationFrame(animId);
-      cleanupFn?.();
-      if (rendererEl && container.contains(rendererEl)) container.removeChild(rendererEl);
-    };
+    return () => { cancelled = true; };
   }, [url]);
 
-  return (
-    <div
-      ref={containerRef}
-      className="h-full w-full"
-      title="Drag to rotate · Scroll to zoom"
-    />
-  );
+  return <div ref={containerRef} className={className ?? "h-full w-full"} />;
 }

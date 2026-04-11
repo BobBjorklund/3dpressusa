@@ -1,0 +1,260 @@
+import { NextRequest, NextResponse } from 'next/server';
+import Stripe from 'stripe';
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2026-03-25.dahlia' as any,
+});
+
+async function brevoSend(to: string, subject: string, htmlContent: string) {
+  await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': process.env.BREVO_API_KEY!,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: '3DPress USA', email: 'orders@3dpressusa.com' },
+      to: [{ email: to }],
+      subject,
+      htmlContent,
+    }),
+  });
+}
+
+async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
+  const customer = session.customer_details;
+  const shipping = session.collected_information?.shipping_details;
+  const addr = shipping?.address;
+
+  const itemRows = lineItems
+    .map((item) => `
+      <tr>
+        <td style="padding:6px 12px;border-bottom:1px solid #333;">${item.description}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #333;text-align:center;">${item.quantity}</td>
+        <td style="padding:6px 12px;border-bottom:1px solid #333;text-align:right;">$${((item.amount_total ?? 0) / 100).toFixed(2)}</td>
+      </tr>`)
+    .join('');
+
+  const html = `
+    <div style="font-family:monospace;background:#0a0a0a;color:#e5e5e5;padding:32px;max-width:600px;">
+      <h2 style="color:#fff;margin:0 0 24px;">🖨 New Order — Print Queue</h2>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <thead>
+          <tr style="background:#1a1a1a;">
+            <th style="padding:8px 12px;text-align:left;color:#999;font-weight:normal;">Item</th>
+            <th style="padding:8px 12px;text-align:center;color:#999;font-weight:normal;">Qty</th>
+            <th style="padding:8px 12px;text-align:right;color:#999;font-weight:normal;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${itemRows}</tbody>
+      </table>
+
+      <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+        <tr>
+          <td style="padding:4px 0;color:#999;">Order ID</td>
+          <td style="padding:4px 0;text-align:right;">${session.id}</td>
+        </tr>
+        <tr>
+          <td style="padding:4px 0;color:#999;">Charged</td>
+          <td style="padding:4px 0;text-align:right;">$${((session.amount_total ?? 0) / 100).toFixed(2)}</td>
+        </tr>
+      </table>
+
+      <div style="background:#1a1a1a;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <div style="color:#999;font-size:12px;margin-bottom:8px;">SHIP TO</div>
+        <div>${shipping?.name ?? customer?.name ?? '—'}</div>
+        <div>${addr?.line1 ?? ''}</div>
+        ${addr?.line2 ? `<div>${addr.line2}</div>` : ''}
+        <div>${addr?.city ?? ''}, ${addr?.state ?? ''} ${addr?.postal_code ?? ''}</div>
+      </div>
+
+      <div style="background:#1a1a1a;border-radius:8px;padding:16px;">
+        <div style="color:#999;font-size:12px;margin-bottom:8px;">CUSTOMER</div>
+        <div>${customer?.name ?? '—'}</div>
+        <div><a href="mailto:${customer?.email}" style="color:#60a5fa;">${customer?.email ?? '—'}</a></div>
+      </div>
+    </div>
+  `;
+
+  await brevoSend(
+    'fulfillment@3dpressusa.com',
+    `New Order: ${lineItems.map((i) => i.description).join(', ')} — ${shipping?.name ?? customer?.name ?? 'Customer'}`,
+    html
+  );
+}
+
+async function sendCustomerEmail(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
+  const customer = session.customer_details;
+  if (!customer?.email) return;
+
+  const shipping = session.collected_information?.shipping_details;
+  const addr = shipping?.address;
+  const firstName = (shipping?.name ?? customer.name ?? 'Patriot').split(' ')[0];
+
+  const totalCaps = lineItems.reduce((sum, i) => sum + (i.quantity ?? 0), 0);
+
+  const bundleNote = totalCaps >= 5
+    ? `<div style="background:#1a2a1a;border:1px solid #2d5a2d;border-radius:8px;padding:14px 16px;margin-bottom:24px;color:#86efac;">
+        <strong>5-cap bundle price applied</strong> — you saved $${totalCaps * 2} off single-unit pricing. That's the move.
+      </div>`
+    : totalCaps >= 3
+    ? `<div style="background:#1a2a1a;border:1px solid #2d5a2d;border-radius:8px;padding:14px 16px;margin-bottom:24px;color:#86efac;">
+        <strong>3-cap bundle price applied</strong> — you saved $${totalCaps} off single-unit pricing.
+      </div>`
+    : '';
+
+  const itemRows = lineItems
+    .map((item) => `
+      <tr>
+        <td style="padding:10px 12px;border-bottom:1px solid #222;color:#e5e5e5;">${item.description}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #222;text-align:center;color:#999;">${item.quantity}</td>
+        <td style="padding:10px 12px;border-bottom:1px solid #222;text-align:right;color:#e5e5e5;">
+          $${((item.amount_total ?? 0) / 100).toFixed(2)}
+        </td>
+      </tr>`)
+    .join('');
+
+  const shippingCents = session.total_details?.amount_shipping ?? 0;
+  const taxCents = session.total_details?.amount_tax ?? 0;
+
+  const html = `
+    <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;margin:0;padding:0;">
+      <div style="max-width:600px;margin:0 auto;padding:40px 24px;">
+
+        <!-- Header -->
+        <div style="text-align:center;margin-bottom:40px;">
+          <div style="font-size:28px;font-weight:900;letter-spacing:-0.5px;margin-bottom:4px;">
+            <span style="color:#ffffff;">3DPress</span><span style="color:#ef4444;">U</span><span style="color:#ffffff;">S</span><span style="color:#3b82f6;">A</span>
+          </div>
+          <div style="color:#555;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;">Made in America · Built to Last</div>
+        </div>
+
+        <!-- Hero message -->
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:32px;margin-bottom:32px;text-align:center;">
+          <div style="font-size:40px;margin-bottom:16px;">🇺🇸</div>
+          <h1 style="color:#fff;font-size:24px;font-weight:900;margin:0 0 12px;">Order confirmed, ${firstName}.</h1>
+          <p style="color:#999;font-size:15px;line-height:1.6;margin:0;">
+            Your order is in the queue. Every cap is printed to order right here in the USA —
+            no inventory, no overseas factories, no compromises. We'll get yours on the printer as soon as possible.
+          </p>
+        </div>
+
+        ${bundleNote}
+
+        <!-- Order details -->
+        <div style="background:#111;border:1px solid #222;border-radius:16px;overflow:hidden;margin-bottom:24px;">
+          <div style="padding:16px 20px;border-bottom:1px solid #222;">
+            <span style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#666;">Your Order</span>
+          </div>
+          <table style="width:100%;border-collapse:collapse;">
+            <tbody>${itemRows}</tbody>
+          </table>
+          <div style="padding:12px 20px;border-top:1px solid #222;display:flex;justify-content:space-between;">
+            <table style="width:100%;border-collapse:collapse;">
+              ${shippingCents > 0 ? `
+              <tr>
+                <td style="padding:4px 0;color:#666;font-size:13px;">Shipping</td>
+                <td style="padding:4px 0;text-align:right;color:#999;font-size:13px;">$${(shippingCents / 100).toFixed(2)}</td>
+              </tr>` : `
+              <tr>
+                <td style="padding:4px 0;color:#666;font-size:13px;">Shipping</td>
+                <td style="padding:4px 0;text-align:right;color:#86efac;font-size:13px;font-weight:700;">FREE</td>
+              </tr>`}
+              ${taxCents > 0 ? `
+              <tr>
+                <td style="padding:4px 0;color:#666;font-size:13px;">Tax</td>
+                <td style="padding:4px 0;text-align:right;color:#999;font-size:13px;">$${(taxCents / 100).toFixed(2)}</td>
+              </tr>` : ''}
+              <tr>
+                <td style="padding:8px 0 4px;color:#fff;font-weight:700;">Total charged</td>
+                <td style="padding:8px 0 4px;text-align:right;color:#fff;font-weight:700;font-size:18px;">$${((session.amount_total ?? 0) / 100).toFixed(2)}</td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <!-- Ship to -->
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:24px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#666;margin-bottom:12px;">Shipping To</div>
+          <div style="color:#e5e5e5;line-height:1.8;">
+            <div style="font-weight:600;">${shipping?.name ?? customer.name ?? ''}</div>
+            <div style="color:#999;">${addr?.line1 ?? ''}</div>
+            ${addr?.line2 ? `<div style="color:#999;">${addr.line2}</div>` : ''}
+            <div style="color:#999;">${addr?.city ?? ''}, ${addr?.state ?? ''} ${addr?.postal_code ?? ''}</div>
+          </div>
+        </div>
+
+        <!-- What's next -->
+        <div style="background:#111;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:32px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:#666;margin-bottom:16px;">What Happens Next</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="background:#1a1a1a;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;text-align:center;line-height:28px;">🖨</div>
+              <div>
+                <div style="font-weight:600;font-size:14px;">Printing</div>
+                <div style="color:#666;font-size:13px;">Your caps go on the printer as soon as we get your order. Each one is printed fresh — no shelf stock.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="background:#1a1a1a;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;text-align:center;line-height:28px;">📦</div>
+              <div>
+                <div style="font-weight:600;font-size:14px;">Ships via USPS</div>
+                <div style="color:#666;font-size:13px;">You'll get a tracking number by email once it's in the mail.</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;align-items:flex-start;">
+              <div style="background:#1a1a1a;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;text-align:center;line-height:28px;">🚗</div>
+              <div>
+                <div style="font-weight:600;font-size:14px;">Roll proud</div>
+                <div style="color:#666;font-size:13px;">Snap your faceplate on and represent. Thanks for keeping it American.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align:center;color:#444;font-size:12px;line-height:1.8;">
+          <div>Questions? Reply to this email or reach us at <a href="mailto:info@3dpressusa.com" style="color:#666;">info@3dpressusa.com</a></div>
+          <div style="margin-top:8px;">Order ID: <span style="font-family:monospace;color:#555;">${session.id}</span></div>
+          <div style="margin-top:16px;font-size:11px;color:#333;">3DPress USA · Made to Order · Printed in America</div>
+        </div>
+
+      </div>
+    </div>
+  `;
+
+  await brevoSend(
+    customer.email,
+    `Your 3DPress USA order is confirmed 🇺🇸`,
+    html
+  );
+}
+
+export async function POST(req: NextRequest) {
+  const body = await req.text();
+  const sig = req.headers.get('stripe-signature')!;
+
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      body,
+      sig,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch {
+    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const { data: lineItems } = await stripe.checkout.sessions.listLineItems(session.id, { limit: 100 });
+    await Promise.all([
+      sendFulfillmentEmail(session, lineItems),
+      sendCustomerEmail(session, lineItems),
+    ]);
+  }
+
+  return NextResponse.json({ received: true });
+}

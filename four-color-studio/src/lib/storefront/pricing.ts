@@ -38,14 +38,11 @@ export function calculateCart(items: CartItem[]) {
   }
 
   // COVER
-  // $10 standalone (no caps), $7 bundled with on-sale caps, $8 bundled with standard caps
+  // $10 standard, $9 if any hero/patriotic (sale) caps in order
   if (coverItems.length > 0) {
-    const coverPrice =
-      totalCaps === 0
-        ? 10
-        : capItems.some((c) => c.pricingType === "hero" || c.pricingType === "patriotic")
-        ? 7
-        : 8;
+    const coverPrice = capItems.some((c) => c.pricingType === "hero" || c.pricingType === "patriotic")
+      ? 9
+      : 10;
 
     for (const cover of coverItems) {
       const itemTotal = coverPrice * cover.quantity;
