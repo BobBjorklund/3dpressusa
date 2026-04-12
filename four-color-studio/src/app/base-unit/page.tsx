@@ -20,8 +20,18 @@ export default function BaseUnitPage() {
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
 
           {/* 3MF viewer */}
-          <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/60 backdrop-blur-sm">
-            <div className="aspect-square">
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10">
+            {/* Blurred truck background */}
+            <img
+              src="/truck-bg.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-contain"
+              style={{ filter: "blur(3px) brightness(1.05)" }}
+            />
+            {/* Light scrim so the model pops */}
+            <div className="absolute inset-0 bg-white/20" />
+            <div className="relative aspect-square">
               <ItemDisplay slug="base-unit" alt="Hitch cover base unit" />
             </div>
           </div>

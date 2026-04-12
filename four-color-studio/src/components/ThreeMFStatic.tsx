@@ -164,18 +164,28 @@ export default function ThreeMFStatic({
       const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(w, h);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.setClearColor(0x0f172a, 0);
+      renderer.setClearColor(0x000000, 0);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.4;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
 
       const scene = new THREE.Scene();
       const camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 2000);
 
-      scene.add(new THREE.AmbientLight(0xffffff, 0.7));
-      const sun = new THREE.DirectionalLight(0xffffff, 1.4);
-      sun.position.set(4, 8, 6);
-      scene.add(sun);
-      const fill = new THREE.DirectionalLight(0xffffff, 0.35);
-      fill.position.set(-4, -2, -4);
+      // Bright ambient so dark parts stay readable
+      scene.add(new THREE.AmbientLight(0xffffff, 1.8));
+      // Key light — warm, upper-front-right
+      const key = new THREE.DirectionalLight(0xfff4e0, 3.0);
+      key.position.set(5, 10, 8);
+      scene.add(key);
+      // Fill light — cool, lower-left
+      const fill = new THREE.DirectionalLight(0xddeeff, 1.2);
+      fill.position.set(-6, 2, 4);
       scene.add(fill);
+      // Rim light — back-top, gives edge definition
+      const rim = new THREE.DirectionalLight(0xffffff, 1.0);
+      rim.position.set(-2, 8, -8);
+      scene.add(rim);
 
       const group = new THREE.Group();
       meshes.forEach(({ positions, indices, color, matrix }) => {
