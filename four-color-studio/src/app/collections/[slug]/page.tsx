@@ -18,6 +18,17 @@ export default async function CollectionPage({
 
   if (!collection) notFound();
 
+  // Heroes items use {branch}-{design} slugs — sort by design so same designs
+  // group together across branches rather than grouping by branch.
+  const items =
+    collection.pricingScheme.name === 'heroes'
+      ? [...collection.items].sort((a, b) => {
+          const designA = a.slug.slice(a.slug.indexOf('-') + 1);
+          const designB = b.slug.slice(b.slug.indexOf('-') + 1);
+          return designA.localeCompare(designB) || a.slug.localeCompare(b.slug);
+        })
+      : collection.items;
+
   return (
     <main className="relative min-h-screen text-white">
 
@@ -80,7 +91,7 @@ export default async function CollectionPage({
           <p className="text-zinc-500">No items in this collection yet.</p>
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {collection.items.map((item) => (
+            {items.map((item) => (
               <ItemCard
                 key={item.id}
                 item={item}
