@@ -50,10 +50,19 @@ export default async function ItemPage({
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
 
           {/* Image */}
-          <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/60 backdrop-blur-sm">
-            <div className="aspect-square">
+          <div className="relative overflow-hidden rounded-[2rem] border border-white/10">
+            {/* Truck bed background — zoomed on bed, light blur */}
+            <img
+              src="/truck-bg.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 h-full w-full object-cover"
+              style={{ filter: "blur(2px) brightness(1.05)", transform: "scale(1.15) translateY(18%)" }}
+            />
+            {/* Very light scrim */}
+            <div className="absolute inset-0 bg-white/10" />
+            <div className="relative aspect-square">
               <ItemDisplay slug={item.slug} alt={item.name} heroOverride={item.heroOverride} />
-
             </div>
           </div>
 

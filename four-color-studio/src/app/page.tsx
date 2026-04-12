@@ -24,7 +24,8 @@ const INTRO_SLIDES: CarouselSlide[] = [
     ctaHref: "/base-unit",
     priceLine: "$10 standard · $9 with hero or patriotic caps",
     bgClass: "from-zinc-900 via-neutral-900 to-black",
-    productImageUrl: "/items/placeholder.png",
+    backgroundImageUrl: "/truck-bg.png",
+    productImageUrl: "/collections/base-unit-product.png",
   },
   {
     id: "main-pricing",

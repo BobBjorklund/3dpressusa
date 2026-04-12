@@ -11,7 +11,7 @@ export default function AddCoverButton() {
 
   function handleAdd() {
     addItem({
-      slug: "hitch-base",
+      slug: "base-unit",
       type: "cover",
       quantity: 1,
       name: "Hitch Cover Base Unit",
