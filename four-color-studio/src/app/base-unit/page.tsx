@@ -1,5 +1,6 @@
 import Link from "next/link";
 import AddCoverButton from "@/components/AddCoverButton";
+import ItemDisplay from "@/components/ItemDisplay";
 
 export default function BaseUnitPage() {
   return (
@@ -18,14 +19,10 @@ export default function BaseUnitPage() {
       <section className="mx-auto max-w-7xl px-6 py-10 md:px-8">
         <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-start">
 
-          {/* Image */}
+          {/* 3MF viewer */}
           <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-zinc-900/60 backdrop-blur-sm">
-            <div className="aspect-square flex items-center justify-center">
-              <img
-                src="/items/placeholder.png"
-                alt="Hitch cover base unit"
-                className="h-full w-full object-cover"
-              />
+            <div className="aspect-square">
+              <ItemDisplay slug="base-unit" alt="Hitch cover base unit" />
             </div>
           </div>
 
