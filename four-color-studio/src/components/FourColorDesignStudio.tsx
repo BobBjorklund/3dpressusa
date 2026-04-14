@@ -250,6 +250,106 @@ const TILE_SIZE_MM = 101.6;
 const CANVAS_SIZE = Math.round(TILE_SIZE_MM / MIN_FEATURE_MM); // 508
 const GRID_STEP = 1; // one canvas pixel = one printable feature
 
+/**
+ * Trace the boundaries of a single color's pixels as smooth closed SVG paths.
+ *
+ * Each color region is traced using directed pixel-boundary edges (marching
+ * squares-style), then smoothed with 3 rounds of Chaikin corner-cutting.
+ * Output is a single SVG path `d` string containing one sub-path per
+ * connected region (including holes). No adjacent-color pixels are ever
+ * consumed — zero blending.
+ */
+function buildSmoothPaths(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  rgb: Rgb,
+  mmPerPixel: number,
+): string {
+  type Pt = [number, number];
+  type Edge = { x2: number; y2: number; used: boolean };
+
+  const isC = (px: number, py: number): boolean => {
+    if (px < 0 || px >= width || py < 0 || py >= height) return false;
+    const i = (py * width + px) * 4;
+    return data[i + 3] > 0 && data[i] === rgb.r && data[i + 1] === rgb.g && data[i + 2] === rgb.b;
+  };
+
+  // Directed boundary edges — clockwise for exterior, counterclockwise for holes.
+  const fromMap = new Map<string, Edge[]>();
+  const allStartKeys: string[] = [];
+
+  const addEdge = (x1: number, y1: number, x2: number, y2: number) => {
+    const key = `${x1},${y1}`;
+    if (!fromMap.has(key)) { fromMap.set(key, []); allStartKeys.push(key); }
+    fromMap.get(key)!.push({ x2, y2, used: false });
+  };
+
+  for (let py = 0; py < height; py++) {
+    for (let px = 0; px < width; px++) {
+      if (!isC(px, py)) continue;
+      if (!isC(px, py - 1)) addEdge(px,     py,     px + 1, py);      // top
+      if (!isC(px, py + 1)) addEdge(px + 1, py + 1, px,     py + 1);  // bottom
+      if (!isC(px - 1, py)) addEdge(px,     py + 1, px,     py);      // left
+      if (!isC(px + 1, py)) addEdge(px + 1, py,     px + 1, py + 1);  // right
+    }
+  }
+
+  // Chain edges into closed polygons.
+  const polygons: Pt[][] = [];
+  for (const startKey of allStartKeys) {
+    for (const startEdge of fromMap.get(startKey)!) {
+      if (startEdge.used) continue;
+      startEdge.used = true;
+      const [sx, sy] = startKey.split(',').map(Number);
+      const poly: Pt[] = [[sx, sy]];
+      let cx = startEdge.x2, cy = startEdge.y2;
+      let guard = (width + 1) * (height + 1) * 4;
+      while ((cx !== sx || cy !== sy) && guard-- > 0) {
+        poly.push([cx, cy]);
+        const nexts = fromMap.get(`${cx},${cy}`);
+        if (!nexts) break;
+        const next = nexts.find(e => !e.used);
+        if (!next) break;
+        next.used = true;
+        cx = next.x2; cy = next.y2;
+      }
+      if (poly.length >= 3) polygons.push(poly);
+    }
+  }
+
+  // Chaikin corner-cutting — 3 iterations, closed curve.
+  // Each cut moves points to 1/4 and 3/4 of each segment, rounding corners
+  // without ever crossing into adjacent color territory.
+  function chaikin(pts: Pt[], iters: number): Pt[] {
+    let p = pts;
+    for (let it = 0; it < iters; it++) {
+      const n = p.length;
+      const q: Pt[] = [];
+      for (let i = 0; i < n; i++) {
+        const [x0, y0] = p[i];
+        const [x1, y1] = p[(i + 1) % n];
+        q.push([0.75 * x0 + 0.25 * x1, 0.75 * y0 + 0.25 * y1]);
+        q.push([0.25 * x0 + 0.75 * x1, 0.25 * y0 + 0.75 * y1]);
+      }
+      p = q;
+    }
+    return p;
+  }
+
+  const mm = (v: number) => (v * mmPerPixel).toFixed(4);
+
+  return polygons
+    .map(poly => {
+      const s = chaikin(poly, 3);
+      if (s.length < 3) return '';
+      const rest = s.slice(1).map(([x, y]) => `${mm(x)},${mm(y)}`).join(' ');
+      return `M${mm(s[0][0])},${mm(s[0][1])} L${rest} Z`;
+    })
+    .filter(Boolean)
+    .join(' ');
+}
+
 function snapToGrid(value: number): number {
   return Math.round(value / GRID_STEP) * GRID_STEP;
 }
@@ -1137,7 +1237,7 @@ export default function FourColorDesignStudio() {
 
       svgParts.push(
         `<?xml version="1.0" encoding="UTF-8"?>`,
-        `<svg xmlns="http://www.w3.org/2000/svg" width="4in" height="4in" viewBox="0 0 ${TILE_SIZE_MM} ${TILE_SIZE_MM}" shape-rendering="crispEdges">`,
+        `<svg xmlns="http://www.w3.org/2000/svg" width="4in" height="4in" viewBox="0 0 ${TILE_SIZE_MM} ${TILE_SIZE_MM}" shape-rendering="geometricPrecision">`,
         `<title>${escapeXml(`${safeName}-${safeColorPart}`)}</title>`,
         `<desc>${escapeXml(`Single-color layer export for ${color.name} (${color.hex}).`)}</desc>`,
       );
@@ -1146,50 +1246,10 @@ export default function FourColorDesignStudio() {
         `<rect x="0" y="${(TILE_SIZE_MM - REG_MARK_SIZE_MM).toFixed(4)}" width="${REG_MARK_SIZE_MM}" height="${REG_MARK_SIZE_MM}" fill="${color.hex}"/>`
       );
 
-      // Collect horizontal runs, then merge vertically adjacent runs with
-      // the same x-start and width. Reduces rect count from O(pixels) to
-      // O(distinct rectangular regions), dramatically simplifying the
-      // geometry that Shapely and the slicer have to process.
-      type MergedRect = { x: number; y: number; w: number; h: number };
-      const mergedRects: MergedRect[] = [];
-      // open[key] = the last MergedRect still being extended downward
-      const open = new Map<string, MergedRect>();
-
-      for (let y = 0; y < height; y += 1) {
-        let runStart = -1;
-        for (let x = 0; x <= width; x += 1) {
-          const isEnd = x === width;
-          let matches = false;
-          if (!isEnd) {
-            const idx = (y * width + x) * 4;
-            matches =
-              data[idx + 3] > 0 &&
-              data[idx] === rgb.r &&
-              data[idx + 1] === rgb.g &&
-              data[idx + 2] === rgb.b;
-          }
-          if (matches && runStart < 0) runStart = x;
-          if ((!matches || isEnd) && runStart >= 0) {
-            const runW = x - runStart;
-            const key = `${runStart},${runW}`;
-            const prev = open.get(key);
-            if (prev && prev.y + prev.h === y) {
-              prev.h += 1; // extend existing rect downward
-            } else {
-              const rect: MergedRect = { x: runStart, y, w: runW, h: 1 };
-              mergedRects.push(rect);
-              open.set(key, rect);
-            }
-            runStart = -1;
-          }
-        }
-      }
-
-      for (const r of mergedRects) {
-        svgParts.push(
-          `<rect x="${(r.x * mmPerPixel).toFixed(4)}" y="${(r.y * mmPerPixel).toFixed(4)}" width="${(r.w * mmPerPixel).toFixed(4)}" height="${(r.h * mmPerPixel).toFixed(4)}" fill="#000000"/>`,
-        );
-      }
+      // Trace smooth boundary paths — one closed sub-path per connected region.
+      // Chaikin corner-cutting rounds staircase edges without touching adjacent colors.
+      const pathData = buildSmoothPaths(data, width, height, rgb, mmPerPixel);
+      if (pathData) svgParts.push(`<path d="${pathData}" fill="#000000"/>`);
 
       svgParts.push(`</svg>`);
 

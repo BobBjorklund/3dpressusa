@@ -20,23 +20,28 @@
 - [x] `prisma/seed.ts` — 2 schemes, 6 tiers, 5 collections, 176 hero items (run from inventory app)
 - [x] Carousel slug mismatches fixed — `/collections/patriot` and `/collections/outdoorsman`
 - [x] Navigation header — sticky, hamburger on mobile, Sale dropdown (DB-driven by `discountTitle`), Collections, Bundles, Design Your Own
+- [x] Carousel slug mismatches fixed — `/collections/patriot` and `/collections/outdoorsman` hrefs corrected
+- [x] `/collections/[slug]/[item-slug]` — item detail page with pricing tiers, high-detail upsell, add-to-cart
+- [x] Cart context (`CartContext`) + `CartDrawer` + `AddToCartButton` + `AddCoverButton`
+- [x] `ThreeMFStatic` — renders `.3mf` files as static images via Three.js (renders once, disposes WebGL)
+- [x] `ItemDisplay` — shows 3MF viewer if `.3mf` exists, falls back to hero PNG
+- [x] `/base-unit` — dedicated page for hitch cover base unit with 3MF viewer, pricing, what's included
+- [x] 3MF viewer on item detail pages — truck-bg blurred photo context behind model
+- [x] Heroes collection sorted by design slug (same designs group together across branches)
+- [x] NavBar refactor — cart icon always visible on mobile, animated slide menu, touch-friendly sale dropdown
+- [x] `factory/generate (1).py` — full 3MF + PNG generation pipeline: file mode, camo mode, logo-only mode
+- [x] Images populated in `/public/collections/` and `/public/items/` for active collections
+- [x] `dev_components` branch created for component refactoring
 
 ---
 
 ## Dead Routes — Needs Fixing
 
-### Slug mismatches (homepage carousel links to wrong slugs)
-| Carousel link | Seeded slug | Fix needed |
-|---|---|---|
-| `/collections/patriotic` | `patriot` | Update carousel slide `ctaHref` to `/collections/patriot` |
-| `/collections/outdoors` | `outdoorsman` | Update carousel slide `ctaHref` to `/collections/outdoorsman` |
-
 ### Missing pages (no file at all)
-- `/bundles` — linked from 3 carousel slides (main-cover, main-pricing, bundle-pricing). Needs a page built.
+- `/bundles` — linked from carousel slides. Needs a page built.
 - `/collections/holiday` — linked from carousel. No collection seeded; holiday is a future collection.
 
 ### Legacy stub pages (file exists, red-border placeholder)
-These predate the `/collections/[slug]` architecture. Each should become a redirect to its canonical URL once the collection slugs are confirmed.
 - `/hero` → redirect to `/collections/hero`
 - `/outdoors` → redirect to `/collections/outdoorsman`
 - `/patriotic` → redirect to `/collections/patriot`
@@ -47,14 +52,14 @@ These predate the `/collections/[slug]` architecture. Each should become a redir
 
 *(ordered — cart is last)*
 
-1. **Drop images** into `/public/collections/` and `/public/items/` using slug-based naming convention
-2. **`/collections/[slug]/[item-slug]`** — item detail page: larger images, color selector (from inventory), add-to-cart button
-5. **`componentKey` support** on collection pages — render special components (e.g. `StickFigureGenerator`) when `Collection.componentKey` is set
-6. **`/bundles`** — bundle builder page: mix collections, quantity-based tier pricing, cover add-on
-7. **Legacy stub redirects** — `/hero`, `/outdoors`, `/patriotic` → permanent redirects to canonical collection URLs
-8. **Seed remaining collections** — item names needed for: Patriot, Outdoorsman, Free Spirits, Adult Humor
-9. **`/collections/holiday`** — holiday collection: seed + images (seasonal, date-relevance sorting comes later)
-10. **Cart / order flow** — add-to-cart → review → quote/inquiry (payment processor TBD; cart is last)
+1. **Component refactoring** (`dev_components` branch) — break heavy pages into reusable components without risking main
+2. **`componentKey` support** on collection pages — render special components (e.g. `StickFigureGenerator`) when `Collection.componentKey` is set
+3. **`/bundles`** — bundle builder page: mix collections, quantity-based tier pricing, cover add-on
+4. **Legacy stub redirects** — `/hero`, `/outdoors`, `/patriotic` → permanent redirects to canonical collection URLs
+5. **Seed remaining collections** — item names needed for: Patriot, Outdoorsman, Free Spirits, Adult Humor
+6. **`/collections/holiday`** — holiday collection: seed + images (seasonal, date-relevance sorting comes later)
+7. **Stripe webhook** — `/api/webhooks/stripe` receiver wired up; domain `3dpressusa.com`
+8. **Cart / order flow** — add-to-cart → review → Stripe checkout (payment processor confirmed: Stripe)
 
 ---
 
@@ -83,9 +88,9 @@ Override any of these per-record in the DB using the `*Override` fields on `Coll
 - **Server Components:** All collection/item pages are server components (no `"use client"`). Data fetched directly via Prisma.
 - **Client Components:** Homepage carousel and design tool are `"use client"`. Keep them isolated.
 - **Pricing schemes:**
-  - `"standard"` — caps $7/$6/$5, cover bundled $8
-  - `"heroes"` — caps $6/$5/$4, cover bundled $7
-  - Cover standalone (no caps in cart) → **$10** regardless of scheme
+  - `"standard"` — caps $10/$9/$8 (1/3+/5+)
+  - `"heroes"` — same tier structure, $9 bundled with base unit
+  - Base unit standalone → **$10**; **$9** when hero or patriotic caps are in the order
 - **Tier is based on total cap quantity across the entire cart** — not per collection. 5 caps (mix of standard + hero) = everyone gets the 5+ rate on their respective scheme.
 - `pricing-config.ts` has hardcoded tier constants used by the design tool and `pricing.ts`. DB tiers are the source of truth for display; `pricing.ts` is used for cart calculation.
 
@@ -93,5 +98,5 @@ Override any of these per-record in the DB using the `*Override` fields on `Coll
 
 ## Open Questions
 
-- Will the cart/order flow go to a form (email/inquiry) or a real payment processor?
-- Is the item card the final leaf node for Sprint 1, or do item detail pages (`/collections/[slug]/[item-slug]`) belong here?
+- `/bundles` scope — full bundle builder or just a landing page linking to collections for now?
+- Holiday collection launch date — determines urgency of seeding + image work

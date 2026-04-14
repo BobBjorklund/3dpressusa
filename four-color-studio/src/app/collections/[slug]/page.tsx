@@ -20,8 +20,8 @@ export default async function CollectionPage({
 
   // Heroes items use {branch}-{design} slugs — sort by design so same designs
   // group together across branches rather than grouping by branch.
-  const items =
-    collection.pricingScheme.name === 'heroes'
+  const isHeroes = collection.pricingScheme.name === 'heroes';
+  const items = isHeroes
       ? [...collection.items].sort((a, b) => {
           const designA = a.slug.slice(a.slug.indexOf('-') + 1);
           const designB = b.slug.slice(b.slug.indexOf('-') + 1);
@@ -89,6 +89,38 @@ export default async function CollectionPage({
       <section className="mx-auto max-w-7xl px-6 py-12 md:px-8">
         {collection.items.length === 0 ? (
           <p className="text-zinc-500">No items in this collection yet.</p>
+        ) : isHeroes ? (
+          // Group by design slug (everything after the first dash)
+          (() => {
+            const groups: { design: string; items: typeof items }[] = [];
+            for (const item of items) {
+              const design = item.slug.slice(item.slug.indexOf("-") + 1);
+              const last = groups[groups.length - 1];
+              if (last?.design === design) last.items.push(item);
+              else groups.push({ design, items: [item] });
+            }
+            return (
+              <div className="flex flex-col gap-8">
+                {groups.map((group, i) => (
+                  <div key={group.design}>
+                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                      {group.items.map((item) => (
+                        <ItemCard
+                          key={item.id}
+                          item={item}
+                          collectionSlug={collection.slug}
+                          schemeName={collection.pricingScheme.name}
+                        />
+                      ))}
+                    </div>
+                    {i < groups.length - 1 && (
+                      <div className="mt-8 border-t border-white/10" />
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => (
