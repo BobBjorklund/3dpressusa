@@ -7,9 +7,9 @@ import { getCollections, collectionCarouselBg, collectionProductImg, formatTiers
 const INTRO_SLIDES: CarouselSlide[] = [
   {
     id: "main-cover",
-    eyebrow: "Core Product",
-    title: "A modular hitch cover built to look better, last longer, and cost less to keep fresh.",
-    body: "Swap the placard, not the whole unit. Built for outdoor use, designed for easy replacement, and made to give your truck a better-looking, better-fitting cover system.",
+    eyebrow: "The System",
+    title: "Buy the base once. Swap the look whenever the mood hits.",
+    body: "Our modular hitch cover keeps the receiver-mounted hardware on your truck for good. The placard up front? That's the fun part — change it as often as your team's winning streak.",
     ctaLabel: "Shop Collections",
     ctaHref: "/collections",
     priceLine: "Full set: $20 · Base unit: $10 · Cap: $10",
@@ -18,8 +18,8 @@ const INTRO_SLIDES: CarouselSlide[] = [
   {
     id: "base-unit",
     eyebrow: "The Hardware",
-    title: "The base unit that makes it all work.",
-    body: "Receiver-mounted base with TPU protective boot and PETG retaining clip. Buy it once — swap caps whenever you want a new look.",
+    title: "The piece that stays on forever.",
+    body: "Receiver-mounted base with TPU protective boot and PETG retaining clip. Installs once, stays put, and never asks you to replace it — just the cap up front.",
     ctaLabel: "Get the Base Unit",
     ctaHref: "/base-unit",
     priceLine: "$10 standard · $9 with hero or patriotic caps",
@@ -30,8 +30,8 @@ const INTRO_SLIDES: CarouselSlide[] = [
   {
     id: "main-pricing",
     eyebrow: "Quantity Pricing",
-    title: "The more caps you buy, the less each one costs.",
-    body: "Pick any cap from any collection. Pricing tiers are based on your total quantity — mix and match freely across the entire catalog.",
+    title: "The more looks you grab, the less each one runs.",
+    body: "Pick anything from any collection. Pricing tiers are based on your total quantity — mix and match freely. Stack the savings without touching a coupon code.",
     ctaLabel: "Browse Collections",
     ctaHref: "/collections",
     priceLine: "1 cap: $10 · 3 caps: $9 · 5+ caps: $8",
@@ -40,21 +40,11 @@ const INTRO_SLIDES: CarouselSlide[] = [
 ];
 
 const OUTRO_SLIDES: CarouselSlide[] = [
-  // {
-  //   id: "design-tool",
-  //   eyebrow: "Design Your Own",
-  //   title: "Don't see anything you like?",
-  //   body: "Build your own placard. Great for sports-inspired designs, names, numbers, rec league ideas, and custom looks you want on your truck.",
-  //   ctaLabel: "Open Design Tool",
-  //   ctaHref: "/design",
-  //   priceLine: "Standard pricing",
-  //   bgClass: "from-orange-950 via-zinc-900 to-neutral-950",
-  // },
   {
     id: "mix-and-match",
     eyebrow: "Mix & Match",
-    title: "Mix collections, house designs, and custom caps your way.",
-    body: "No bundles to pick from — just pick what you want. Buy across collections, keep the quantity discount, and build the exact setup you actually want.",
+    title: "No bundles. No kits. Just pick what you actually want.",
+    body: "Buy across collections, keep the quantity discount, and build the exact setup you actually want. We're not here to upsell you a bundle you didn't ask for.",
     ctaLabel: "Browse Collections",
     ctaHref: "/collections",
     priceLine: "Standard cover add-on: +$8 · Hero/Patriotic cover add-on: +$7",
@@ -140,18 +130,18 @@ export default async function HomePage() {
                 3D Press, USA • East Windsor, NJ
               </div>
               <h1 className="mt-3 max-w-4xl text-3xl font-black tracking-tight text-white md:text-4xl lg:text-4xl">
-                A better hitch cover system that is modular, customizable, and built to last.
+                Your hitch cover is embarrassing you. We fixed that.
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-200 md:text-base">
-                Swap the placard without replacing the whole unit. Built for outdoor use, easier replacement, cleaner fit, and a better-looking setup on the back of your truck.
+                3D-printed right here in New Jersey. Our modular system keeps the base on your truck and lets you swap the placard whenever the mood changes — new season, new look, no problem. Built tough. Priced right. Made in America.
               </p>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 lg:self-end">
               {[
-                { text: "Swap the placard, not the whole unit", cls: "border-red-400/20 bg-red-500/15 text-red-50" },
-                { text: "Built for outdoor use and cheaper replacement", cls: "border-blue-400/20 bg-blue-500/15 text-blue-50" },
-                { text: "Protective boot included for a cleaner fit and finish", cls: "border-amber-300/20 bg-amber-500/15 text-amber-50" },
+                { text: "Swap the look. Keep the hardware.", cls: "border-red-400/20 bg-red-500/15 text-red-50" },
+                { text: "Printed in New Jersey. Tough enough to say so.", cls: "border-blue-400/20 bg-blue-500/15 text-blue-50" },
+                { text: "TPU boot protects your receiver. Because it deserves it.", cls: "border-amber-300/20 bg-amber-500/15 text-amber-50" },
               ].map((item) => (
                 <div key={item.text} className={`rounded-2xl border p-4 text-sm font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm ${item.cls}`}>
                   {item.text}
@@ -175,20 +165,20 @@ export default async function HomePage() {
           <div className="grid gap-6 md:grid-cols-3">
             <FeatureCard
               eyebrow="Better by design"
-              title="Not disposable junk"
-              body="Most hitch covers are one-piece throwaways. Ours is a modular system, so you keep the good hardware and swap the front when you want something new."
+              title="Not the junk you've seen before"
+              body="Most hitch covers are one-piece throwaways from overseas. Ours is a modular system — keep the good hardware, swap the placard when you want something fresh. Your wallet will notice."
               tintClass="bg-gradient-to-br from-red-500/14 via-white/[0.06] to-white/[0.03]"
             />
             <FeatureCard
               eyebrow="Built for the real world"
-              title="Made for weather, wear, and cheap refreshes"
-              body="Built with high-quality materials chosen for outdoor use, fit, protection, and easy replacement when you want a new look without rebuying the whole setup."
+              title="Weather's got nothing on this"
+              body="UV, rain, road grime, the neighbor's opinion — our covers handle it all. High-quality materials, tight fit, and easy replacement that won't make you regret buying American."
               tintClass="bg-gradient-to-br from-blue-500/14 via-white/[0.06] to-white/[0.03]"
             />
             <FeatureCard
               eyebrow="The hardware"
-              title="The base unit that makes it all work"
-              body="Receiver-mounted base with TPU protective boot and PETG retaining clip. Buy it once — swap caps whenever you want a new look. $10 standard, $9 with hero caps."
+              title="One base. Infinite looks."
+              body="Receiver-mounted base with TPU boot and PETG retaining clip. Installs once. Stays forever. Swap caps anytime — $10 to start, $9 with hero or patriotic caps."
               tintClass="bg-gradient-to-br from-amber-400/16 via-white/[0.06] to-white/[0.03]"
             />
           </div>
@@ -203,21 +193,24 @@ export default async function HomePage() {
             <div className="absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.04))]" />
             <div className="absolute -bottom-12 left-10 h-36 w-36 rounded-full bg-red-500/10 blur-3xl" />
             <div className="absolute -top-10 right-20 h-40 w-40 rounded-full bg-amber-400/10 blur-3xl" />
-            {/* <div className="relative">
-              <div className="text-xs font-black uppercase tracking-[0.25em] text-orange-300">Custom work</div>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">Don't see anything you like?</h2>
+            <div className="relative">
+              <div className="text-xs font-black uppercase tracking-[0.25em] text-orange-300">Custom Work</div>
+              <h2 className="mt-3 text-3xl font-black tracking-tight">Got an idea that doesn&apos;t fit in a square?</h2>
               <p className="mt-4 max-w-3xl text-lg leading-8 text-orange-50/90">
-                Build your own placard with the design tool. It is a great fit for sports-style ideas, team colors, names, numbers, rec leagues, and custom concepts you want to make your own.
+                Good news — we&apos;re not square. We can print custom shapes, sizes, and designs. Round, oval, state-shaped, your company logo, your kid&apos;s drawing from the fridge — if it fits on a hitch, we want to hear about it. Drop us an email and let&apos;s talk.
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
-                <Link href="/design" className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-zinc-200">
-                  Open Design Tool
+                <Link
+                  href="mailto:designs@3dpressusa.com"
+                  className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-zinc-200"
+                >
+                  designs@3dpressusa.com
                 </Link>
                 <div className="rounded-full border border-orange-300/25 bg-orange-400/15 px-4 py-3 text-sm font-bold text-orange-50">
-                  Standard pricing
+                  Any shape · Any design · Standard pricing
                 </div>
               </div>
-            </div> */}
+            </div>
           </div>
         </div>
       </section>

@@ -80,11 +80,13 @@ export default function NavBar({
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+              {/* pt-1 bridges the gap between button and menu so onMouseLeave doesn't fire mid-travel */}
               <div
-                className={`absolute right-0 top-full min-w-[180px] overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_16px_48px_rgba(0,0,0,0.40)] transition-all duration-200 ${
-                  saleOpen ? "pointer-events-auto translate-y-1 opacity-100" : "pointer-events-none translate-y-0 opacity-0"
+                className={`absolute right-0 top-full pt-1 min-w-[180px] transition-all duration-200 ${
+                  saleOpen ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1"
                 }`}
               >
+                <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_16px_48px_rgba(0,0,0,0.40)]">
                 {saleCollections.map((c) => (
                   <Link
                     key={c.slug}
@@ -95,6 +97,7 @@ export default function NavBar({
                     {c.name}
                   </Link>
                 ))}
+                </div>
               </div>
             </div>
           )}

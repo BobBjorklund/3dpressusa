@@ -1,4 +1,3 @@
-"use client";
 import Link from "next/link";
 import { configTiersForDisplay } from "@/lib/storefront/pricing-config";
 
@@ -34,10 +33,8 @@ export default function ItemCard({
         <img
           src={imgSrc}
           alt={item.name}
+          loading="lazy"
           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
-          onError={(e) => {
-            (e.currentTarget as HTMLImageElement).src = "/items/placeholder.png";
-          }}
         />
         {/* 3D render toast */}
         <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">

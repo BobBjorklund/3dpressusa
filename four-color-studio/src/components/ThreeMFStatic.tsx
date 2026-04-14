@@ -46,9 +46,11 @@ function parseMeshFromObject(obj: Element) {
 export default function ThreeMFStatic({
   url,
   className,
+  onError,
 }: {
   url: string;
   className?: string;
+  onError?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -67,7 +69,7 @@ export default function ThreeMFStatic({
       if (cancelled) return;
 
       const res = await fetch(url);
-      if (!res.ok || cancelled) return;
+      if (!res.ok || cancelled) { if (!res.ok) onError?.(); return; }
       const buf = await res.arrayBuffer();
       if (cancelled) return;
 

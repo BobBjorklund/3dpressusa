@@ -20,7 +20,7 @@ export default async function CollectionsPage() {
             Collections
           </h1>
           <p className="mt-3 max-w-2xl text-zinc-300">
-            Keep the cover — swap the placard whenever you want a new look.
+            3D-printed in New Jersey. Each placard snaps onto the same base — mix collections, grab a few, pay less per cap the more you buy.
           </p>
         </div>
 

@@ -1,13 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import dynamic from "next/dynamic";
 
 const ThreeMFStatic = dynamic(() => import("./ThreeMFStatic"), { ssr: false });
-
-function resolveHeroImg(slug: string, heroOverride?: string | null) {
-  return heroOverride ?? `/items/${slug}-hero.png`;
-}
 
 export default function ItemDisplay({
   slug,
@@ -18,47 +14,24 @@ export default function ItemDisplay({
   alt: string;
   heroOverride?: string | null;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [show3mf, setShow3mf] = useState(false);
-  const [imgSrc, setImgSrc] = useState(() => resolveHeroImg(slug, heroOverride));
+  const [failed, setFailed] = useState(false);
 
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (!entries[0]?.isIntersecting) return;
-        observer.disconnect();
-        fetch(`/items/${slug}.3mf`, { method: "HEAD" })
-          .then((res) => { if (res.ok) setShow3mf(true); })
-          .catch(() => { });
-      },
-      { rootMargin: "200px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [slug]);
-
-  if (show3mf) {
+  if (!failed) {
     return (
-      <div ref={ref} className="h-full w-full">
-        <ThreeMFStatic url={`/items/${slug}.3mf`} />
-      </div>
+      <ThreeMFStatic
+        url={`/items/${slug}.3mf`}
+        className="h-full w-full"
+        onError={() => setFailed(true)}
+      />
     );
   }
 
   return (
-    <div ref={ref} className="h-full w-full">
-      <img
-        src={imgSrc}
-        alt={alt}
-        className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
-        onError={() => {
-          if (imgSrc !== "/items/placeholder.png") {
-            setImgSrc("/items/placeholder.png");
-          }
-        }}
-      />
-    </div>
+    <img
+      src={heroOverride ?? `/items/${slug}-hero.png`}
+      alt={alt}
+      className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
+      onError={(e) => { (e.currentTarget as HTMLImageElement).src = "/items/placeholder.png"; }}
+    />
   );
 }

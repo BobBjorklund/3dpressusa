@@ -32,6 +32,14 @@
 - [x] `factory/generate (1).py` — full 3MF + PNG generation pipeline: file mode, camo mode, logo-only mode
 - [x] Images populated in `/public/collections/` and `/public/items/` for active collections
 - [x] `dev_components` branch created for component refactoring
+- [x] Site copy rewrite — witty, conservative, Made in America tone across homepage + collections page
+- [x] Custom work CTA — `designs@3dpressusa.com`, any shape, live on homepage
+- [x] Collection copy — eyebrow, subtitle, description seeded in DB for all 7 collections
+- [x] Order confirmation email — customer + fulfillment emails via Brevo wired to Stripe webhook
+- [x] `Footer` component — legal links, contact emails, copyright; added to root layout
+- [x] `/legal/privacy` — Privacy Policy page
+- [x] `/legal/returns` — Returns & Refunds page
+- [x] `/legal/shipping` — Shipping Policy page
 
 ---
 

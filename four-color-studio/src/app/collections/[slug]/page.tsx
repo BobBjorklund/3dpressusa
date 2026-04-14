@@ -7,6 +7,8 @@ import {
   formatTiers,
 } from "@/lib/storefront/collections";
 import ItemCard from "@/components/ItemCard";
+import EyebrowBadge from "@/components/EyebrowBadge";
+import FixedPageBackground from "@/components/FixedPageBackground";
 
 export default async function CollectionPage({
   params,
@@ -32,16 +34,7 @@ export default async function CollectionPage({
   return (
     <main className="relative min-h-screen text-white">
 
-      {/* Fixed background — stays put while page scrolls */}
-      <div className="fixed inset-0 -z-10">
-        <img
-          src={collectionCarouselBg(collection)}
-          alt=""
-          className="h-full w-full object-cover"
-        />
-        {/* Dark overlay so content stays readable throughout */}
-        <div className="absolute inset-0 bg-zinc-950/75" />
-      </div>
+      <FixedPageBackground src={collectionCarouselBg(collection)} />
 
       {/* Hero */}
       <section className="border-b border-white/10">
@@ -56,9 +49,7 @@ export default async function CollectionPage({
           <div className="grid gap-8 md:grid-cols-[1fr_auto] md:items-center">
             <div>
               {collection.eyebrow && (
-                <div className="mb-4 w-fit rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-white/75 backdrop-blur-sm">
-                  {collection.eyebrow}
-                </div>
+                <EyebrowBadge className="mb-4">{collection.eyebrow}</EyebrowBadge>
               )}
               <h1 className="text-3xl font-black tracking-tight md:text-4xl">
                 {collection.name}

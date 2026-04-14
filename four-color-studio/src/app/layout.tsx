@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import NavBar from "@/components/NavBar";
+import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
 import { prisma } from "@/lib/prisma";
@@ -46,6 +47,7 @@ export default async function RootLayout({
           <NavBar saleCollections={saleCollections} />
           <CartDrawer />
           {children}
+          <Footer />
         </CartProvider>
       </body>
     </html>
