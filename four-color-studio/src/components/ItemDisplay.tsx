@@ -20,7 +20,7 @@ export default function ItemDisplay({
     return (
       <ThreeMFStatic
         url={`/items/${slug}.3mf`}
-        className="h-full w-full"
+        className="absolute inset-0"
         onError={() => setFailed(true)}
       />
     );

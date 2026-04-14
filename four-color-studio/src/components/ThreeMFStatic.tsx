@@ -230,12 +230,15 @@ export default function ThreeMFStatic({
 
       const img = document.createElement("img");
       img.src = dataUrl;
-      img.className = "h-full w-full object-contain";
       img.alt = "";
+      img.style.cssText = "position:absolute;top:0;right:0;bottom:0;left:0;width:100%;height:100%;object-fit:contain;";
       el.appendChild(img);
     }
 
-    render(container);
+    render(container).catch((err) => {
+      console.error("[ThreeMFStatic] render error:", err);
+      onError?.();
+    });
 
     return () => { cancelled = true; };
   }, [url]);

@@ -9,6 +9,13 @@ import {
 import ItemCard from "@/components/ItemCard";
 import EyebrowBadge from "@/components/EyebrowBadge";
 import FixedPageBackground from "@/components/FixedPageBackground";
+import TruckGuyColorSelector from "@/components/TruckGuyColorSelector";
+
+// Registry of custom collection components keyed by Collection.componentKey
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const COMPONENT_REGISTRY: Record<string, React.ComponentType<any>> = {
+  TruckGuyColorSelector,
+};
 
 export default async function CollectionPage({
   params,
@@ -22,8 +29,9 @@ export default async function CollectionPage({
 
   // Heroes items use {branch}-{design} slugs — sort by design so same designs
   // group together across branches rather than grouping by branch.
-  const isHeroes = collection.pricingScheme.name === 'heroes';
-  const items = isHeroes
+  // Group by design only for the hero collection — other heroes-priced collections (patriot etc.) use a flat grid
+  const groupByDesign = collection.slug === 'hero';
+  const items = groupByDesign
       ? [...collection.items].sort((a, b) => {
           const designA = a.slug.slice(a.slug.indexOf('-') + 1);
           const designB = b.slug.slice(b.slug.indexOf('-') + 1);
@@ -76,11 +84,24 @@ export default async function CollectionPage({
         </div>
       </section>
 
-      {/* Items — sits on top of the fixed bg */}
+      {/* Items — custom component or standard grid */}
       <section className="mx-auto max-w-7xl px-6 py-12 md:px-8">
-        {collection.items.length === 0 ? (
+        {collection.componentKey ? (
+          (() => {
+            const CustomComponent = COMPONENT_REGISTRY[collection.componentKey!];
+            return CustomComponent ? (
+              <CustomComponent
+                items={collection.items}
+                schemeName={collection.pricingScheme.name}
+                componentProps={collection.componentProps as Record<string, unknown> | null}
+              />
+            ) : (
+              <p className="text-zinc-500">Unknown component: {collection.componentKey}</p>
+            );
+          })()
+        ) : collection.items.length === 0 ? (
           <p className="text-zinc-500">No items in this collection yet.</p>
-        ) : isHeroes ? (
+        ) : groupByDesign ? (
           // Group by design slug (everything after the first dash)
           (() => {
             const groups: { design: string; items: typeof items }[] = [];

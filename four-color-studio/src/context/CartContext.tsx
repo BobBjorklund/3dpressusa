@@ -5,18 +5,19 @@ import { CartItem, CapPricingType } from "@/lib/storefront/pricing-config";
 import { calculateCart } from "@/lib/storefront/pricing";
 
 export type CartEntry = {
-  id: string;             // slug — dedup key and CartItem.id
+  id: string;             // slug, or slug::color1::color2 for color-configured items
   slug: string;
   type: "cap" | "cover";
   quantity: number;
   pricingType?: CapPricingType;
   highDetail?: boolean;
   name: string;
+  colorKeys?: string[];   // selected inventory color keys (e.g. logo color, bg color)
 };
 
 type CartContextValue = {
   entries: CartEntry[];
-  addItem: (entry: Omit<CartEntry, "id">) => void;
+  addItem: (entry: Omit<CartEntry, "id"> & { id?: string }) => void;
   removeItem: (id: string) => void;
   updateQty: (id: string, delta: number) => void;
   clearCart: () => void;
@@ -51,8 +52,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
   }, [entries, hydrated]);
 
-  function addItem(entry: Omit<CartEntry, "id">) {
-    const id = entry.slug;
+  function addItem(entry: Omit<CartEntry, "id"> & { id?: string }) {
+    const id = entry.id ?? entry.slug;
     setEntries((prev) => {
       const existing = prev.find((e) => e.id === id);
       if (existing) {
@@ -60,7 +61,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           e.id === id ? { ...e, quantity: e.quantity + entry.quantity } : e
         );
       }
-      return [...prev, { ...entry, id }];
+      return [...prev, { ...entry, id, slug: entry.slug }];
     });
   }
 
