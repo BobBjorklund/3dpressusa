@@ -251,6 +251,44 @@ const CANVAS_SIZE = Math.round(TILE_SIZE_MM / MIN_FEATURE_MM); // 508
 const GRID_STEP = 1; // one canvas pixel = one printable feature
 
 /**
+ * Rasterise one color layer into merged <rect> elements for SVG export.
+ * svg_stack_to_placard_3mf.py expects rect-based SVG — smooth <path> elements
+ * are great for canvas preview but the extrusion script can't process them.
+ */
+function buildRectSvgBody(data: Uint8ClampedArray, width: number, height: number, rgb: Rgb): string {
+  const mm = TILE_SIZE_MM / width;
+  const { r, g, b } = rgb;
+
+  // open_r: key=(col_start, run_width) → last rect [x, y, w, h] for vertical merging
+  const openR = new Map<string, number[]>();
+  const merged: number[][] = [];
+
+  for (let y = 0; y < height; y++) {
+    let rs = -1;
+    for (let x = 0; x <= width; x++) {
+      const on = x < width && data[(y * width + x) * 4] === r &&
+                               data[(y * width + x) * 4 + 1] === g &&
+                               data[(y * width + x) * 4 + 2] === b &&
+                               data[(y * width + x) * 4 + 3] >= 128;
+      if (on && rs < 0) { rs = x; }
+      if (!on && rs >= 0) {
+        const rw = x - rs;
+        const key = `${rs},${rw}`;
+        const prev = openR.get(key);
+        if (prev && prev[1] + prev[3] === y) { prev[3]++; }
+        else { const rect = [rs, y, rw, 1]; merged.push(rect); openR.set(key, rect); }
+        rs = -1;
+      }
+    }
+  }
+
+  return merged
+    .map(([rx, ry, rw, rh]) =>
+      `<rect x="${(rx * mm).toFixed(4)}" y="${(ry * mm).toFixed(4)}" width="${(rw * mm).toFixed(4)}" height="${(rh * mm).toFixed(4)}" fill="#000000"/>`)
+    .join("");
+}
+
+/**
  * Trace the boundaries of a single color's pixels as smooth closed SVG paths.
  *
  * Each color region is traced using directed pixel-boundary edges (marching
@@ -1181,7 +1219,6 @@ export default function FourColorDesignStudio() {
       exportCanvas.height,
     );
 
-    const mmPerPixel = TILE_SIZE_MM / CANVAS_SIZE;
     const zip = new JSZip();
 
     const escapeXml = (value: string) =>
@@ -1246,10 +1283,10 @@ export default function FourColorDesignStudio() {
         `<rect x="0" y="${(TILE_SIZE_MM - REG_MARK_SIZE_MM).toFixed(4)}" width="${REG_MARK_SIZE_MM}" height="${REG_MARK_SIZE_MM}" fill="${color.hex}"/>`
       );
 
-      // Trace smooth boundary paths — one closed sub-path per connected region.
-      // Chaikin corner-cutting rounds staircase edges without touching adjacent colors.
-      const pathData = buildSmoothPaths(data, width, height, rgb, mmPerPixel);
-      if (pathData) svgParts.push(`<path d="${pathData}" fill="#000000"/>`);
+      // Export uses rasterised <rect> elements — svg_stack_to_placard_3mf.py
+      // extrudes rects and cannot process smooth <path> geometry.
+      const rectBody = buildRectSvgBody(data, width, height, rgb);
+      if (rectBody) svgParts.push(rectBody);
 
       svgParts.push(`</svg>`);
 
