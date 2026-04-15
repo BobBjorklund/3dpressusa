@@ -18,11 +18,13 @@ export default function ItemDisplay({
 
   if (!failed) {
     return (
-      <ThreeMFStatic
-        url={`/items/${slug}.3mf`}
-        className="absolute inset-0"
-        onError={() => setFailed(true)}
-      />
+      <div className="absolute inset-0">
+        <ThreeMFStatic
+          url={`/items/${slug}.3mf`}
+          className="h-full w-full"
+          onError={() => setFailed(true)}
+        />
+      </div>
     );
   }
 

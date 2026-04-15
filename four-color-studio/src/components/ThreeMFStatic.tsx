@@ -243,5 +243,5 @@ export default function ThreeMFStatic({
     return () => { cancelled = true; };
   }, [url]);
 
-  return <div ref={containerRef} className={className ?? "h-full w-full"} />;
+  return <div ref={containerRef} className={`relative ${className ?? "h-full w-full"}`} />;
 }

@@ -6,7 +6,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 async function brevoSend(to: string, subject: string, htmlContent: string) {
-  await fetch('https://api.brevo.com/v3/smtp/email', {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
       'api-key': process.env.BREVO_API_KEY!,
@@ -19,6 +19,10 @@ async function brevoSend(to: string, subject: string, htmlContent: string) {
       htmlContent,
     }),
   });
+  if (!res.ok) {
+    const body = await res.text().catch(() => '(unreadable)');
+    console.error(`[brevo] ${res.status} sending to ${to}: ${body}`);
+  }
 }
 
 async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
@@ -243,7 +247,11 @@ export async function POST(req: NextRequest) {
       sig,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch {
+  } catch (err) {
+    console.error('[webhook] constructEvent failed:', err);
+    console.error('[webhook] sig header:', sig);
+    console.error('[webhook] secret length:', process.env.STRIPE_WEBHOOK_SECRET?.length);
+    console.error('[webhook] body length:', body.length);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
   }
 
