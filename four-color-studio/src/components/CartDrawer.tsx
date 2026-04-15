@@ -73,7 +73,7 @@ export default function CartDrawer() {
                   >
                     <div className="flex items-start gap-3">
                       {/* 3MF thumbnail */}
-                      <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-zinc-800">
+                      <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white">
                         <ThreeMFStatic
                           url={`/items/${entry.slug}.3mf`}
                           className="h-full w-full"
