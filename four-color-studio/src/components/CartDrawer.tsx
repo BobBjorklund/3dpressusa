@@ -141,19 +141,23 @@ export default function CartDrawer() {
               })}
 
               {/* Base unit upsell */}
-              {!entries.some((e) => e.type === "cover") && (
-                <Link
-                  href="/base-unit"
-                  onClick={closeCart}
-                  className="flex items-center gap-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 transition hover:bg-amber-400/15"
-                >
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs font-black text-amber-200">Complete your setup</p>
-                    <p className="text-xs text-white/50 mt-0.5">Add a base unit — receiver mount + TPU boot + PETG clip</p>
-                  </div>
-                  <span className="text-sm font-black text-amber-200 flex-shrink-0">$10 →</span>
-                </Link>
-              )}
+              {!entries.some((e) => e.type === "cover") && (() => {
+                const hasSaleCaps = entries.some((e) => e.pricingType === "hero" || e.pricingType === "patriotic");
+                const basePrice = hasSaleCaps ? 9 : 10;
+                return (
+                  <Link
+                    href="/base-unit"
+                    onClick={closeCart}
+                    className="flex items-center gap-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 transition hover:bg-amber-400/15"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-black text-amber-200">Complete your setup</p>
+                      <p className="text-xs text-white/50 mt-0.5">Add a base unit — receiver mount + TPU boot + PETG clip</p>
+                    </div>
+                    <span className="text-sm font-black text-amber-200 flex-shrink-0">${basePrice} →</span>
+                  </Link>
+                );
+              })()}
 
               {/* Tier hint — caps only, cover doesn't count toward discount */}
               {capCount > 0 && capCount < 3 && (
