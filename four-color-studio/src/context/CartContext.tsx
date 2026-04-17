@@ -13,6 +13,7 @@ export type CartEntry = {
   highDetail?: boolean;
   name: string;
   colorKeys?: string[];   // selected inventory color keys (e.g. logo color, bg color)
+  colorHexes?: [string, string]; // [logoHex, bgHex] for items with no premade 3MF
 };
 
 type CartContextValue = {

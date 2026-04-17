@@ -72,11 +72,14 @@ export default function CartDrawer() {
                     className="rounded-2xl border border-white/10 bg-white/[0.04] p-4"
                   >
                     <div className="flex items-start gap-3">
-                      {/* 3MF thumbnail */}
+                      {/* Thumbnail — SVG preview for color-configured items, 3MF otherwise */}
                       <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border border-white/10 bg-white">
                         <ThreeMFStatic
                           url={`/items/${entry.slug}.3mf`}
                           className="h-full w-full"
+                          layerColors={entry.colorHexes
+                            ? { placard: entry.colorHexes[1], bg: entry.colorHexes[1], logo: entry.colorHexes[0] }
+                            : undefined}
                         />
                       </div>
 

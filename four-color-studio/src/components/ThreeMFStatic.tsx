@@ -47,10 +47,13 @@ export default function ThreeMFStatic({
   url,
   className,
   onError,
+  layerColors,
 }: {
   url: string;
   className?: string;
   onError?: () => void;
+  /** Override colors by object-name fragment: e.g. { bg: "#1a1a1a", logo: "#f0f0f0" } */
+  layerColors?: Record<string, string>;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -150,9 +153,16 @@ export default function ThreeMFStatic({
         const doc = new DOMParser().parseFromString(xml, "text/xml");
         doc.querySelectorAll("resources > object").forEach((obj) => {
           const name = obj.getAttribute("name") ?? "";
-          const lastSegment = name.split("-").pop()?.toLowerCase() ?? "";
-          const isHex = /^[0-9a-f]{6}$/.test(lastSegment);
-          const color = isHex ? `#${lastSegment}` : (COLOR_MAP[lastSegment] ?? "#9ca3af");
+          const nameLower = name.toLowerCase();
+          let color: string;
+          if (layerColors) {
+            const key = Object.keys(layerColors).find((k) => nameLower.includes(k));
+            color = key ? layerColors[key] : "#9ca3af";
+          } else {
+            const lastSegment = nameLower.split("-").pop() ?? "";
+            const isHex = /^[0-9a-f]{6}$/.test(lastSegment);
+            color = isHex ? `#${lastSegment}` : (COLOR_MAP[lastSegment] ?? "#9ca3af");
+          }
           const mesh = parseMeshFromObject(obj);
           if (mesh) meshes.push({ ...mesh, color, matrix: null });
         });

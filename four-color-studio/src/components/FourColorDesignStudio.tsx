@@ -245,7 +245,7 @@ function labDist(a: Lab, b: Lab): number {
 
 
 
-const MIN_FEATURE_MM = 0.42;
+const MIN_FEATURE_MM = 0.2;
 const TILE_SIZE_MM = 101.6;
 const CANVAS_SIZE = Math.round(TILE_SIZE_MM / MIN_FEATURE_MM); // 508
 const GRID_STEP = 1; // one canvas pixel = one printable feature

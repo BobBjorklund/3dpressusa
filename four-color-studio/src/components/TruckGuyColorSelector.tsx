@@ -19,38 +19,10 @@ function shortName(name: string) {
   return parts[parts.length - 1] ?? name;
 }
 
-function ColorSwatch({
-  color,
-  selected,
-  onClick,
-}: {
-  color: InventoryColor;
-  selected: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title={color.name}
-      className={`relative h-8 w-8 flex-shrink-0 rounded-full transition focus:outline-none ${
-        selected ? "ring-2 ring-white ring-offset-2 ring-offset-zinc-900 scale-110" : "hover:scale-105"
-      }`}
-      style={{ backgroundColor: color.hex }}
-    >
-      {selected && (
-        <span className="absolute inset-0 flex items-center justify-center">
-          <svg className="h-4 w-4 drop-shadow" fill="none" viewBox="0 0 24 24" stroke="white" strokeWidth={3}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-          </svg>
-        </span>
-      )}
-    </button>
-  );
-}
 
 // Cache fetched+cleaned SVG strings so we don't re-fetch on color change
 const svgCache: Record<string, string> = {};
+
 
 const WHITE_RE = /^(#fff|#ffffff|white)$/i;
 
@@ -191,6 +163,7 @@ export default function TruckGuyColorSelector({
       pricingType: selectedItem.pricingType as CapPricingType,
       name: displayName,
       colorKeys: [logoColor.id, bgColor.id],
+      colorHexes: [logoColor.hex, bgColor.hex],
     });
 
     setAdded(true);
@@ -203,144 +176,162 @@ export default function TruckGuyColorSelector({
   const canAdd = !!selectedItem && !!logoColor && !!bgColor && !loadingColors;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="grid gap-8 lg:grid-cols-[1fr_auto]">
 
-      {/* Brand picker */}
-      <div>
-        <div className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-          Pick Your Brand
+      {/* LEFT — preview */}
+      <div className="flex flex-col gap-3">
+        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+          Preview
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {items.map((item) => (
-            <button
-              key={item.slug}
-              type="button"
-              onClick={() => setSelectedItem(item)}
-              className={`rounded-2xl border px-4 py-4 text-left transition ${
-                selectedItem?.slug === item.slug
-                  ? "border-white/40 bg-white/[0.10] text-white"
-                  : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80"
-              }`}
-            >
-              <div className="text-base font-black">{item.name}</div>
-              {item.description && (
-                <div className="mt-1 text-xs text-zinc-500 line-clamp-1">{item.description}</div>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Color pickers */}
-      {loadingColors ? (
-        <div className="text-sm text-zinc-500">Loading colors...</div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2">
-
-          <div>
-            <div className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-              Logo Color
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((c) => (
-                <ColorSwatch
-                  key={c.id}
-                  color={c}
-                  selected={logoColor?.id === c.id}
-                  onClick={() => setLogoColor(c)}
-                />
-              ))}
-            </div>
-            {logoColor && (
-              <div className="mt-2 text-xs text-zinc-500">{logoColor.name}</div>
-            )}
-          </div>
-
-          <div>
-            <div className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-              Background Color
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {colors.map((c) => (
-                <ColorSwatch
-                  key={c.id}
-                  color={c}
-                  selected={bgColor?.id === c.id}
-                  onClick={() => setBgColor(c)}
-                />
-              ))}
-            </div>
-            {bgColor && (
-              <div className="mt-2 text-xs text-zinc-500">{bgColor.name}</div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Preview */}
-      {selectedItem && logoColor && bgColor && (
-        <div>
-          <div className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
-            Preview
-          </div>
-          <LogoPreview
-            itemSlug={selectedItem.slug}
-            logoHex={logoColor.hex}
-            bgHex={bgColor.hex}
-          />
-          <p className="mt-2 text-xs text-zinc-600">
-            Approximate color preview — actual print may vary slightly by filament batch.
+        <LogoPreview
+          itemSlug={selectedItem?.slug ?? (items[0]?.slug ?? "")}
+          logoHex={logoColor?.hex ?? "#f0f0f0"}
+          bgHex={bgColor?.hex ?? "#1a1a1a"}
+        />
+        {selectedItem?.slug === "truck-guys-jeep" && (
+          <p className="text-xs text-amber-400/80">
+            Due to technical limitations, the preview is incomplete — however &ldquo;JEEP&rdquo; is written in the windshield. Trust us, it&rsquo;ll be there on your print.
           </p>
-        </div>
-      )}
-
-      {/* Quantity + Add to Cart */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center rounded-full border border-white/10 bg-white/[0.04]">
-          <button
-            type="button"
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
-          >
-            −
-          </button>
-          <span className="w-8 text-center text-sm font-black">{qty}</span>
-          <button
-            type="button"
-            onClick={() => setQty((q) => Math.min(20, q + 1))}
-            className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
-          >
-            +
-          </button>
-        </div>
-
-        <button
-          type="button"
-          onClick={handleAdd}
-          disabled={!canAdd || added}
-          className={`flex flex-1 items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
-            added
-              ? "bg-emerald-500 text-white"
-              : "bg-white text-black hover:bg-zinc-200"
-          }`}
-        >
-          {added ? (
-            <>
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-              Added!
-            </>
-          ) : (
-            <>
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
-              </svg>
-              Add to Cart
-            </>
-          )}
-        </button>
+        )}
+        <p className="text-xs text-zinc-600">
+          Approximate color preview — actual print may vary slightly by filament batch.
+        </p>
       </div>
+
+      {/* RIGHT — controls: 3 tall columns + add button below */}
+      <div className="flex flex-col gap-4">
+
+        {/* Three columns: brand | logo color | bg color */}
+        <div className="grid grid-cols-3 gap-3">
+
+          {/* Brand */}
+          <div className="flex flex-col gap-1">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+              Brand
+            </div>
+            {items.map((item) => (
+              <button
+                key={item.slug}
+                type="button"
+                onClick={() => setSelectedItem(item)}
+                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                  selectedItem?.slug === item.slug
+                    ? "border-white/40 bg-white/[0.10] text-white"
+                    : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80"
+                }`}
+              >
+                <div className="text-sm font-black">{item.name}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Logo Color */}
+          <div className="flex flex-col">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+              Logo
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {colors.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setLogoColor(c)}
+                  title={c.name}
+                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition ${
+                    logoColor?.id === c.id
+                      ? "bg-white/[0.10] text-white"
+                      : "text-white/50 hover:bg-white/[0.05] hover:text-white/80"
+                  }`}
+                >
+                  <span
+                    className="h-4 w-4 flex-shrink-0 rounded-full border border-white/20"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span className="truncate text-xs font-medium">{shortName(c.name)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Background Color */}
+          <div className="flex flex-col">
+            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+              Base
+            </div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {colors.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => setBgColor(c)}
+                  title={c.name}
+                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition ${
+                    bgColor?.id === c.id
+                      ? "bg-white/[0.10] text-white"
+                      : "text-white/50 hover:bg-white/[0.05] hover:text-white/80"
+                  }`}
+                >
+                  <span
+                    className="h-4 w-4 flex-shrink-0 rounded-full border border-white/20"
+                    style={{ backgroundColor: c.hex }}
+                  />
+                  <span className="truncate text-xs font-medium">{shortName(c.name)}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Quantity + Add to Cart */}
+        <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center rounded-full border border-white/10 bg-white/[0.04]">
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
+            >
+              −
+            </button>
+            <span className="w-8 text-center text-sm font-black">{qty}</span>
+            <button
+              type="button"
+              onClick={() => setQty((q) => Math.min(20, q + 1))}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
+            >
+              +
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={!canAdd || added}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
+              added
+                ? "bg-emerald-500 text-white"
+                : "bg-white text-black hover:bg-zinc-200"
+            }`}
+          >
+            {added ? (
+              <>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                Added!
+              </>
+            ) : (
+              <>
+                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
+                </svg>
+                Add to Cart
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+
     </div>
   );
 }
