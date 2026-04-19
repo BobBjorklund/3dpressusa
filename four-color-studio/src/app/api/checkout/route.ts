@@ -41,6 +41,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json();
   const items: CartItem[] = body.items;
   const displayNames: Record<string, string> = body.displayNames ?? {};
+  const stickFamilyConfigs: Record<string, string> = body.stickFamilyConfigs ?? {};
 
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
@@ -122,6 +123,7 @@ export async function POST(req: NextRequest) {
     automatic_tax: { enabled: true },
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/collections`,
+    metadata: stickFamilyConfigs,
   });
 
   return NextResponse.json({ url: session.url });

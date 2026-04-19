@@ -26,12 +26,23 @@ export default function BuyButton() {
     setLoading(true);
     setError(null);
     try {
+      // Collect stick family slot configs keyed by a short index so the webhook
+      // can reconstruct the preview image (Stripe metadata limit: 500 chars/value)
+      const sfEntries = entries.filter((e) => e.stickFamilySlots?.length);
+      const stickFamilyConfigs = Object.fromEntries(
+        sfEntries.map((e, i) => [
+          `sf_${i}`,
+          e.stickFamilySlots!.map((s) => `${s.line}:${s.variant}:${s.halo ? '1' : '0'}`).join('|'),
+        ])
+      );
+
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           items: cartItems,
           displayNames: Object.fromEntries(entries.map((e) => [e.id, e.name])),
+          stickFamilyConfigs,
         }),
       });
 

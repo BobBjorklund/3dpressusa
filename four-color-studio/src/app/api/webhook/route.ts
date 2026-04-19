@@ -1,11 +1,104 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import fs from 'fs';
+import path from 'path';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia' as any,
 });
 
-async function brevoSend(to: string, subject: string, htmlContent: string) {
+// ─── Stick family preview compositor ─────────────────────────────────────────
+
+const SF_VARIANTS: Record<string, { heightRatio: number; aspect: number }> = {
+  'adult-male':   { heightRatio: 1.00, aspect: 0.5 },
+  'adult-female': { heightRatio: 1.00, aspect: 0.5 },
+  'teen-male':    { heightRatio: 0.82, aspect: 0.5 },
+  'teen-female':  { heightRatio: 0.82, aspect: 0.5 },
+  'kid-male':     { heightRatio: 0.65, aspect: 0.5 },
+  'kid-female':   { heightRatio: 0.65, aspect: 0.5 },
+  'infant':       { heightRatio: 0.58, aspect: 1.0 },
+  'dog':          { heightRatio: 0.62, aspect: 1.0 },
+  'cat':          { heightRatio: 0.58, aspect: 1.0 },
+};
+
+function compositeStickFamilySvg(encoded: string): string {
+  const slots = encoded.split('|').map((s) => {
+    const [line, variant, halo] = s.split(':');
+    return { line, variant, halo: halo === '1' };
+  });
+
+  const SIZE = 400;
+  const PAD = Math.round(SIZE * 0.07);
+  const ROW_GAP = Math.round(SIZE * 0.02);
+  const MAX_PER_ROW = 4;
+  const usable = SIZE - PAD * 2;
+  const numRows = slots.length <= 4 ? 1 : slots.length <= 8 ? 2 : 3;
+  const perRowH = (usable - ROW_GAP * (numRows - 1)) / numRows;
+  const perSlotW = usable / MAX_PER_ROW;
+  const baseH = Math.min(perRowH, perSlotW / 0.5);
+
+  let images = '';
+
+  for (let ri = 0; ri < numRows; ri++) {
+    const row = slots.slice(ri * MAX_PER_ROW, (ri + 1) * MAX_PER_ROW);
+    for (let si = 0; si < row.length; si++) {
+      const { line, variant, halo } = row[si];
+      const vDef = SF_VARIANTS[variant] ?? { heightRatio: 0.7, aspect: 0.5 };
+      const figH = Math.min(baseH * vDef.heightRatio, perSlotW / vDef.aspect);
+      const figW = figH * vDef.aspect;
+
+      const figX = PAD + si * perSlotW + (perSlotW - figW) / 2;
+      const figY = PAD + ri * (baseH + ROW_GAP) + baseH - figH;
+
+      // Load the figure SVG and embed as data URI
+      const svgFilePath = path.join(process.cwd(), 'public', 'stick-figure', line, `${variant}.svg`);
+      let dataUri = '';
+      try {
+        const raw = fs.readFileSync(svgFilePath, 'utf-8');
+        dataUri = `data:image/svg+xml;base64,${Buffer.from(raw).toString('base64')}`;
+      } catch {
+        // File not generated yet — skip silently
+      }
+
+      if (dataUri) {
+        images += `<image href="${dataUri}" x="${figX.toFixed(1)}" y="${figY.toFixed(1)}" width="${figW.toFixed(1)}" height="${figH.toFixed(1)}"/>\n`;
+      }
+
+      if (halo) {
+        const hw = figH * 0.38;
+        const hh = figH * 0.12;
+        const cx = figX + figW / 2;
+        const cy = figY - hh / 2 - 4;
+        images += `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${(hw / 2 * 0.875).toFixed(1)}" ry="${(hh / 2 * 0.75).toFixed(1)}" fill="none" stroke="#000" stroke-width="${(SIZE * 0.006).toFixed(1)}"/>\n`;
+      }
+    }
+  }
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${SIZE}" height="${SIZE}" viewBox="0 0 ${SIZE} ${SIZE}">
+  <rect width="${SIZE}" height="${SIZE}" fill="white"/>
+  <rect x="3" y="3" width="${SIZE - 6}" height="${SIZE - 6}" fill="none" stroke="#000" stroke-width="5" rx="12"/>
+  ${images}</svg>`;
+}
+
+async function buildStickFamilyPng(encoded: string): Promise<Buffer | null> {
+  try {
+    const sharp = (await import('sharp')).default;
+    const svg = compositeStickFamilySvg(encoded);
+    return await sharp(Buffer.from(svg)).png().toBuffer();
+  } catch (err) {
+    console.error('[stick-family] PNG render failed:', err);
+    return null;
+  }
+}
+
+// ─── Email sender ─────────────────────────────────────────────────────────────
+
+async function brevoSend(
+  to: string,
+  subject: string,
+  htmlContent: string,
+  attachments?: { content: string; name: string }[],
+) {
   const res = await fetch('https://api.brevo.com/v3/smtp/email', {
     method: 'POST',
     headers: {
@@ -17,6 +110,7 @@ async function brevoSend(to: string, subject: string, htmlContent: string) {
       to: [{ email: to }],
       subject,
       htmlContent,
+      ...(attachments?.length ? { attachment: attachments } : {}),
     }),
   });
   if (!res.ok) {
@@ -26,6 +120,17 @@ async function brevoSend(to: string, subject: string, htmlContent: string) {
 }
 
 async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
+  // Build stick family preview PNGs from session metadata (sf_0, sf_1, …)
+  const sfAttachments: { content: string; name: string }[] = [];
+  const meta = session.metadata ?? {};
+  const sfKeys = Object.keys(meta).filter((k) => k.startsWith('sf_')).sort();
+  for (const key of sfKeys) {
+    const png = await buildStickFamilyPng(meta[key]);
+    if (png) {
+      const idx = sfKeys.length > 1 ? `_${key.slice(3)}` : '';
+      sfAttachments.push({ content: png.toString('base64'), name: `stick-family-preview${idx}.png` });
+    }
+  }
   const customer = session.customer_details;
   const shipping = session.collected_information?.shipping_details;
   const addr = shipping?.address;
@@ -84,7 +189,8 @@ async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems:
   await brevoSend(
     'fulfillment@3dpressusa.com',
     `New Order: ${lineItems.map((i) => i.description).join(', ')} — ${shipping?.name ?? customer?.name ?? 'Customer'}`,
-    html
+    html,
+    sfAttachments,
   );
 }
 

@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { CartItem, CapPricingType } from "@/lib/storefront/pricing-config";
+import type { SlotConfig } from "@/components/StickFamilySelector";
 import { calculateCart } from "@/lib/storefront/pricing";
 
 export type CartEntry = {
@@ -13,7 +14,8 @@ export type CartEntry = {
   highDetail?: boolean;
   name: string;
   colorKeys?: string[];   // selected inventory color keys (e.g. logo color, bg color)
-  colorHexes?: [string, string]; // [logoHex, bgHex] for items with no premade 3MF
+  colorHexes?: [string, string];     // [logoHex, bgHex] for items with no premade 3MF
+  stickFamilySlots?: SlotConfig[];   // slot config for stick family orders
 };
 
 type CartContextValue = {

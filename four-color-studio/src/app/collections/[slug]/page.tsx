@@ -10,11 +10,13 @@ import ItemCard from "@/components/ItemCard";
 import EyebrowBadge from "@/components/EyebrowBadge";
 import FixedPageBackground from "@/components/FixedPageBackground";
 import TruckGuyColorSelector from "@/components/TruckGuyColorSelector";
+import StickFamilySelector from "@/components/StickFamilySelector";
 
 // Registry of custom collection components keyed by Collection.componentKey
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const COMPONENT_REGISTRY: Record<string, React.ComponentType<any>> = {
   TruckGuyColorSelector,
+  StickFamilySelector,
 };
 
 export default async function CollectionPage({
