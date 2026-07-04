@@ -11,6 +11,7 @@ import EyebrowBadge from "@/components/EyebrowBadge";
 import FixedPageBackground from "@/components/FixedPageBackground";
 import TruckGuyColorSelector from "@/components/TruckGuyColorSelector";
 import StickFamilySelector from "@/components/StickFamilySelector";
+import HeroBranchAccordion from "@/components/HeroBranchAccordion";
 
 // Registry of custom collection components keyed by Collection.componentKey
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -29,17 +30,10 @@ export default async function CollectionPage({
 
   if (!collection) notFound();
 
-  // Heroes items use {branch}-{design} slugs — sort by design so same designs
-  // group together across branches rather than grouping by branch.
-  // Group by design only for the hero collection — other heroes-priced collections (patriot etc.) use a flat grid
-  const groupByDesign = collection.slug === 'hero';
-  const items = groupByDesign
-      ? [...collection.items].sort((a, b) => {
-          const designA = a.slug.slice(a.slug.indexOf('-') + 1);
-          const designB = b.slug.slice(b.slug.indexOf('-') + 1);
-          return designA.localeCompare(designB) || a.slug.localeCompare(b.slug);
-        })
-      : collection.items;
+  // Hero collection is huge (177+ items) and heavily duplicated across branches —
+  // show a collapsible accordion grouped by branch instead of one long flat grid.
+  const groupByBranch = collection.slug === 'hero';
+  const items = collection.items;
 
   return (
     <main className="relative min-h-screen text-white">
@@ -103,38 +97,12 @@ export default async function CollectionPage({
           })()
         ) : collection.items.length === 0 ? (
           <p className="text-zinc-500">No items in this collection yet.</p>
-        ) : groupByDesign ? (
-          // Group by design slug (everything after the first dash)
-          (() => {
-            const groups: { design: string; items: typeof items }[] = [];
-            for (const item of items) {
-              const design = item.slug.slice(item.slug.indexOf("-") + 1);
-              const last = groups[groups.length - 1];
-              if (last?.design === design) last.items.push(item);
-              else groups.push({ design, items: [item] });
-            }
-            return (
-              <div className="flex flex-col gap-8">
-                {groups.map((group, i) => (
-                  <div key={group.design}>
-                    <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                      {group.items.map((item) => (
-                        <ItemCard
-                          key={item.id}
-                          item={item}
-                          collectionSlug={collection.slug}
-                          schemeName={collection.pricingScheme.name}
-                        />
-                      ))}
-                    </div>
-                    {i < groups.length - 1 && (
-                      <div className="mt-8 border-t border-white/10" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          })()
+        ) : groupByBranch ? (
+          <HeroBranchAccordion
+            items={items}
+            collectionSlug={collection.slug}
+            schemeName={collection.pricingScheme.name}
+          />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => (
