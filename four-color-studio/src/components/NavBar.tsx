@@ -31,19 +31,26 @@ function CartButton({ onClick, itemCount, className }: { onClick: () => void; it
 
 export default function NavBar({
   saleCollections,
+  allCollections,
 }: {
   saleCollections: NavCollection[];
+  allCollections: NavCollection[];
 }) {
   const [open, setOpen] = useState(false);
   const [saleOpen, setSaleOpen] = useState(false);
+  const [collectionsOpen, setCollectionsOpen] = useState(false);
   const saleRef = useRef<HTMLDivElement>(null);
+  const collectionsRef = useRef<HTMLDivElement>(null);
   const { itemCount, openCart } = useCart();
 
-  // Close sale dropdown on outside click (touch-friendly)
+  // Close dropdowns on outside click (touch-friendly)
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (saleRef.current && !saleRef.current.contains(e.target as Node)) {
         setSaleOpen(false);
+      }
+      if (collectionsRef.current && !collectionsRef.current.contains(e.target as Node)) {
+        setCollectionsOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClick);
@@ -111,9 +118,48 @@ export default function NavBar({
             </div>
           )}
 
-          <Link href="/collections" className="rounded-full px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white">
-            Collections
-          </Link>
+          <div
+            ref={collectionsRef}
+            className="relative"
+            onMouseEnter={() => setCollectionsOpen(true)}
+            onMouseLeave={() => setCollectionsOpen(false)}
+          >
+            <button
+              onClick={() => setCollectionsOpen((v) => !v)}
+              className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white"
+            >
+              Collections
+              <svg className={`h-3 w-3 transition-transform duration-200 ${collectionsOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {/* pt-1 bridges the gap between button and menu so onMouseLeave doesn't fire mid-travel */}
+            <div
+              className={`absolute right-0 top-full pt-1 min-w-[200px] transition-all duration-200 ${
+                collectionsOpen ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1"
+              }`}
+            >
+              <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_16px_48px_rgba(0,0,0,0.40)]">
+                <Link
+                  href="/collections"
+                  onClick={() => setCollectionsOpen(false)}
+                  className="block border-b border-white/10 px-4 py-3 text-sm font-black text-white/90 transition hover:bg-white/[0.07]"
+                >
+                  All Collections
+                </Link>
+                {allCollections.map((c) => (
+                  <Link
+                    key={c.slug}
+                    href={`/collections/${c.slug}`}
+                    onClick={() => setCollectionsOpen(false)}
+                    className="block px-4 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07] hover:text-white"
+                  >
+                    {c.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <CartButton onClick={openCart} itemCount={itemCount} className="ml-1" />
         </nav>
@@ -171,13 +217,26 @@ export default function NavBar({
             </>
           )}
 
+          <div className="mb-1 px-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
+            Collections
+          </div>
           <Link
             href="/collections"
             onClick={() => setOpen(false)}
-            className="block rounded-xl px-3 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07]"
+            className="block rounded-xl px-3 py-3 text-sm font-black text-white/90 transition hover:bg-white/[0.07]"
           >
-            Collections
+            All Collections
           </Link>
+          {allCollections.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/collections/${c.slug}`}
+              onClick={() => setOpen(false)}
+              className="block rounded-xl px-3 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07]"
+            >
+              {c.name}
+            </Link>
+          ))}
         </nav>
       </div>
     </header>

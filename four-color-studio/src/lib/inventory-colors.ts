@@ -33,6 +33,7 @@ function buildLabel(spool: any) {
 export async function getInventoryColors(): Promise<InventoryColor[]> {
   const spools = await prisma.spool.findMany({
     where: {
+      userId: 'temp_user_id',
       status: 'active',
       remainingNetWeightG: { gt: 40 },
       colorName: { not: null },

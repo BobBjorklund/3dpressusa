@@ -37,6 +37,12 @@ export default async function RootLayout({
     orderBy: { sortOrder: "asc" },
   });
 
+  const allCollections = await prisma.collection.findMany({
+    where: { active: true },
+    select: { slug: true, name: true },
+    orderBy: { sortOrder: "asc" },
+  });
+
   return (
     <html
       lang="en"
@@ -44,7 +50,7 @@ export default async function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-zinc-950 text-white">
         <CartProvider>
-          <NavBar saleCollections={saleCollections} />
+          <NavBar saleCollections={saleCollections} allCollections={allCollections} />
           <CartDrawer />
           {children}
           <Footer />
