@@ -51,15 +51,24 @@ export default function NavBar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/90 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/75 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-8">
 
         {/* Logo */}
-        <Link href="/" className="text-lg font-black tracking-tight" onClick={() => setOpen(false)}>
-          <span className="text-white">3DPress</span>
-          <span className="text-red-500">U</span>
-          <span className="text-white">S</span>
-          <span className="text-blue-500">A</span>
+        <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
+          <img
+            src="/brand/3dpress-usa-badge-clean-128.png"
+            alt="3DPress USA"
+            className="h-12 w-12"
+            width={128}
+            height={128}
+          />
+          <span className="text-lg font-black tracking-tight">
+            <span className="text-white">3DPress</span>
+            <span className="text-red-500">U</span>
+            <span className="text-white">S</span>
+            <span className="text-blue-500">A</span>
+          </span>
         </Link>
 
         {/* Desktop nav */}

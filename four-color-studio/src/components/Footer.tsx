@@ -2,17 +2,26 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-white/10 bg-zinc-950">
+    <footer className="mt-auto border-t border-white/10 bg-zinc-950/80 backdrop-blur-md">
       <div className="mx-auto max-w-7xl px-6 py-10 md:px-8">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
 
           {/* Brand */}
           <div className="sm:col-span-2 md:col-span-1">
-            <div className="text-lg font-black tracking-tight">
-              <span className="text-white">3DPress</span>
-              <span className="text-red-500">U</span>
-              <span className="text-white">S</span>
-              <span className="text-blue-500">A</span>
+            <div className="flex items-center gap-2">
+              <img
+                src="/brand/3dpress-usa-badge-clean-64.png"
+                alt="3DPress USA"
+                className="h-9 w-9"
+                width={64}
+                height={64}
+              />
+              <div className="text-lg font-black tracking-tight">
+                <span className="text-white">3DPress</span>
+                <span className="text-red-500">U</span>
+                <span className="text-white">S</span>
+                <span className="text-blue-500">A</span>
+              </div>
             </div>
             <p className="mt-2 text-sm text-zinc-500 leading-6">
               Modular 3D-printed hitch covers.<br />

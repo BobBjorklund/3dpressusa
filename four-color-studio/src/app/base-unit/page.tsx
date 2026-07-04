@@ -29,7 +29,7 @@ export default function BaseUnitPage() {
             <div>
               <h1 className="text-3xl font-black tracking-tight md:text-4xl">Hitch Cover Base Unit</h1>
               <p className="mt-3 text-lg leading-7 text-zinc-300">
-                The receiver-mounted base that makes the whole system work. Includes the TPU protective boot and PETG retaining clip. Buy it once — swap caps forever.
+                The receiver-mounted base that makes the whole system work. Includes the PETG retaining clip. Buy it once — swap caps forever.
               </p>
             </div>
 
@@ -38,7 +38,6 @@ export default function BaseUnitPage() {
               <ul className="flex flex-col gap-2">
                 {[
                   { label: "Hitch cover base", detail: "77g — fits standard 2\" receiver" },
-                  { label: "TPU protective boot", detail: "30g — weatherproof seal, cleaner fit" },
                   { label: "PETG retaining clip", detail: "5g — keeps it locked in place" },
                 ].map((item) => (
                   <li key={item.label} className="flex items-start gap-3">

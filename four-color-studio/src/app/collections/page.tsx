@@ -10,8 +10,14 @@ export default async function CollectionsPage() {
   const collections = await getCollections();
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white">
-      <div className="mx-auto max-w-7xl px-6 py-12 md:px-8">
+    <main className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
+      <img
+        src="/brand/3dpress-usa-badge-clean.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none fixed left-1/2 top-1/2 h-[900px] w-[900px] -translate-x-1/2 -translate-y-1/2 opacity-[0.07] md:h-[1100px] md:w-[1100px]"
+      />
+      <div className="relative mx-auto max-w-7xl px-6 py-12 md:px-8">
         <div className="mb-10">
           <div className="text-[11px] font-black uppercase tracking-[0.3em] text-red-300">
             3D Press, USA

@@ -155,7 +155,7 @@ export default function CartDrawer() {
                   >
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-black text-amber-200">Complete your setup</p>
-                      <p className="text-xs text-white/50 mt-0.5">Add a base unit — receiver mount + TPU boot + PETG clip</p>
+                      <p className="text-xs text-white/50 mt-0.5">Add a base unit — receiver mount + PETG clip</p>
                     </div>
                     <span className="text-sm font-black text-amber-200 flex-shrink-0">${basePrice} →</span>
                   </Link>

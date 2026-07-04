@@ -19,7 +19,7 @@ const INTRO_SLIDES: CarouselSlide[] = [
     id: "base-unit",
     eyebrow: "The Hardware",
     title: "The piece that stays on forever.",
-    body: "Receiver-mounted base with TPU protective boot and PETG retaining clip. Installs once, stays put, and never asks you to replace it — just the cap up front.",
+    body: "Receiver-mounted base with a PETG retaining clip. Installs once, stays put, and never asks you to replace it — just the cap up front.",
     ctaLabel: "Get the Base Unit",
     ctaHref: "/base-unit",
     priceLine: "$10 standard · $9 with hero or patriotic caps",
@@ -58,6 +58,11 @@ function GlobalBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
       <div className="absolute inset-0 bg-zinc-950" />
+      <img
+        src="/brand/3dpress-usa-badge-clean.png"
+        alt=""
+        className="fixed left-1/2 top-1/2 h-[900px] w-[900px] -translate-x-1/2 -translate-y-1/2 opacity-[0.07] md:h-[1100px] md:w-[1100px]"
+      />
       <div className="absolute inset-0 opacity-[0.22]">
         <div className="absolute -left-16 top-8 h-64 w-64 rotate-[-12deg] rounded-[2rem] border border-red-400/20 bg-gradient-to-br from-red-500/30 to-transparent shadow-[0_0_60px_rgba(239,68,68,0.20)]" />
         <div className="absolute left-[16%] top-28 h-56 w-56 rotate-[8deg] rounded-[2rem] border border-blue-400/20 bg-gradient-to-br from-blue-500/25 to-transparent shadow-[0_0_60px_rgba(59,130,246,0.18)]" />
@@ -141,7 +146,7 @@ export default async function HomePage() {
               {[
                 { text: "Swap the look. Keep the hardware.", cls: "border-red-400/20 bg-red-500/15 text-red-50" },
                 { text: "Printed in New Jersey. Tough enough to say so.", cls: "border-blue-400/20 bg-blue-500/15 text-blue-50" },
-                { text: "TPU boot protects your receiver. Because it deserves it.", cls: "border-amber-300/20 bg-amber-500/15 text-amber-50" },
+                { text: "PETG retaining clip keeps it locked in tight.", cls: "border-amber-300/20 bg-amber-500/15 text-amber-50" },
               ].map((item) => (
                 <div key={item.text} className={`rounded-2xl border p-4 text-sm font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm ${item.cls}`}>
                   {item.text}
@@ -178,7 +183,7 @@ export default async function HomePage() {
             <FeatureCard
               eyebrow="The hardware"
               title="One base. Infinite looks."
-              body="Receiver-mounted base with TPU boot and PETG retaining clip. Installs once. Stays forever. Swap caps anytime — $10 to start, $9 with hero or patriotic caps."
+              body="Receiver-mounted base with a PETG retaining clip. Installs once. Stays forever. Swap caps anytime — $10 to start, $9 with hero or patriotic caps."
               tintClass="bg-gradient-to-br from-amber-400/16 via-white/[0.06] to-white/[0.03]"
             />
           </div>
@@ -188,7 +193,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden">
         <SectionGlow color="from-orange-500/18 via-red-400/8 to-transparent" />
         <div className="relative mx-auto max-w-7xl px-6 py-12 md:px-8">
-          <div className="relative overflow-hidden rounded-[2rem] border border-orange-400/20 bg-[linear-gradient(135deg,rgba(146,64,14,0.42),rgba(120,53,15,0.35),rgba(67,20,7,0.72))] p-8 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+          <div className="relative overflow-hidden rounded-[2rem] border border-orange-400/20 bg-[linear-gradient(135deg,rgba(146,64,14,0.28),rgba(120,53,15,0.22),rgba(67,20,7,0.48))] backdrop-blur-sm p-8 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_28%)]" />
             <div className="absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.04))]" />
             <div className="absolute -bottom-12 left-10 h-36 w-36 rounded-full bg-red-500/10 blur-3xl" />
