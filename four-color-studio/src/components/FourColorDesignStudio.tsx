@@ -239,8 +239,39 @@ function rgbToLab(rgb: Rgb): Lab {
   return xyzToLab(rgbToXyz(rgb));
 }
 
+/**
+ * Hue-priority color distance. Plain Euclidean Lab distance weights lightness
+ * equally with hue, so a dark, moderately-saturated color (e.g. navy blue)
+ * ends up numerically "closer" to black than to a brighter blue swatch —
+ * the lightness gap dominates even though a human clearly sees blue, not
+ * black. When the source pixel (a) has real chroma, this prioritizes hue
+ * angle match over lightness/chroma-magnitude, and penalizes matching it to
+ * a near-neutral (gray/black/white) target. Near-neutral source pixels
+ * (low chroma) fall back to standard Euclidean Lab distance, since hue is
+ * meaningless noise for actual grays/blacks/whites.
+ */
 function labDist(a: Lab, b: Lab): number {
-  return (a.l - b.l) ** 2 + (a.a - b.a) ** 2 + (a.b - b.b) ** 2;
+  const chromaA = Math.sqrt(a.a * a.a + a.b * a.b);
+  const chromaB = Math.sqrt(b.a * b.a + b.b * b.b);
+  const dl = a.l - b.l;
+
+  if (chromaA < 8) {
+    const da = a.a - b.a;
+    const db = a.b - b.b;
+    return dl * dl + da * da + db * db;
+  }
+
+  const hueA = Math.atan2(a.b, a.a);
+  const hueB = Math.atan2(b.b, b.a);
+  let dHue = Math.abs(hueA - hueB);
+  if (dHue > Math.PI) dHue = 2 * Math.PI - dHue;
+
+  const hueTerm = dHue * dHue * 5000;
+  const achromaticPenalty = chromaB < 8 ? 3000 : 0;
+  const lightnessTerm = dl * dl * 0.2;
+  const chromaTerm = (chromaA - chromaB) ** 2 * 0.1;
+
+  return hueTerm + achromaticPenalty + lightnessTerm + chromaTerm;
 }
 
 
@@ -435,6 +466,77 @@ function quantize(imageData: ImageData, palette: InventoryColor[]): ImageData {
     d[i + 1] = rgb.g;
     d[i + 2] = rgb.b;
     d[i + 3] = 255;
+  }
+
+  return imageData;
+}
+
+/**
+ * Clean up isolated/small speckle noise left by quantize() — compression
+ * artifacts in the source photo make some pixels inside an otherwise-flat
+ * region snap to the wrong palette color. For each opaque pixel, if its own
+ * color is a small minority among its 8 neighbors and one neighbor color
+ * clearly dominates, reclassify it to match — this closes up "color
+ * islands" automatically without touching real, wider intentional strokes
+ * (which have enough same-colored neighbors to survive).
+ */
+function despeckle(imageData: ImageData, width: number, height: number, iterations = 2): ImageData {
+  const src = imageData.data;
+
+  for (let iter = 0; iter < iterations; iter++) {
+    const out = new Uint8ClampedArray(src);
+
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        if (src[i + 3] === 0) continue;
+
+        const counts = new Map<string, { count: number; rgb: [number, number, number] }>();
+        let ownKey = `${src[i]},${src[i + 1]},${src[i + 2]}`;
+        let ownCount = 0;
+
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            const nx = x + dx;
+            const ny = y + dy;
+            if (nx < 0 || nx >= width || ny < 0 || ny >= height) continue;
+            const ni = (ny * width + nx) * 4;
+            if (src[ni + 3] === 0) continue;
+
+            const key = `${src[ni]},${src[ni + 1]},${src[ni + 2]}`;
+            if (key === ownKey) {
+              ownCount++;
+              continue;
+            }
+            const entry = counts.get(key);
+            if (entry) entry.count++;
+            else counts.set(key, { count: 1, rgb: [src[ni], src[ni + 1], src[ni + 2]] });
+          }
+        }
+
+        // Only touch isolated pixels (own color barely represented nearby)
+        // where one other color clearly dominates the neighborhood.
+        if (ownCount > 1) continue;
+
+        let bestKey: string | null = null;
+        let bestCount = 0;
+        for (const [key, entry] of counts) {
+          if (entry.count > bestCount) {
+            bestCount = entry.count;
+            bestKey = key;
+          }
+        }
+        if (bestKey && bestCount >= 5) {
+          const entry = counts.get(bestKey)!;
+          out[i] = entry.rgb[0];
+          out[i + 1] = entry.rgb[1];
+          out[i + 2] = entry.rgb[2];
+        }
+      }
+    }
+
+    src.set(out);
   }
 
   return imageData;
@@ -1329,7 +1431,7 @@ pause
     sCtx.drawImage(img, ox, oy, dw, dh);
     const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
-    const quantized = quantize(id, selColors);
+    const quantized = despeckle(quantize(id, selColors), CANVAS_SIZE, CANVAS_SIZE);
     qCtx.putImageData(quantized, 0, 0);
     baseQuantizedRef.current = qCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
@@ -1387,7 +1489,7 @@ pause
     sCtx.imageSmoothingEnabled = false;
     sCtx.drawImage(img, ox, oy, dw, dh);
     const id = sCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-    qCtx.putImageData(quantize(id, selColors), 0, 0);
+    qCtx.putImageData(despeckle(quantize(id, selColors), CANVAS_SIZE, CANVAS_SIZE), 0, 0);
     baseQuantizedRef.current = qCtx.getImageData(0, 0, CANVAS_SIZE, CANVAS_SIZE);
 
     setTextItems([]);
