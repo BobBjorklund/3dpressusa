@@ -29,6 +29,12 @@ const BRANCH_LABELS: [string, string][] = [
 ];
 
 function splitBranch(slug: string): { branch: string; label: string } {
+  // Wife-themed designs (branch-specific or generic) get pulled into one shared
+  // group instead of being scattered under their branch or standing alone.
+  if (slug === "military-wife" || slug.endsWith("-wife")) {
+    return { branch: "the-wives", label: "The Wives" };
+  }
+
   for (const [prefix, label] of BRANCH_LABELS) {
     if (slug === prefix || slug.startsWith(prefix + "-")) {
       return { branch: prefix, label };

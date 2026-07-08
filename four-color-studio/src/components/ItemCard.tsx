@@ -37,9 +37,9 @@ export default function ItemCard({
           className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.05]"
         />
         {/* 3D render toast */}
-        <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
-          <div className="whitespace-nowrap rounded-full border border-white/20 bg-zinc-900/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/70 backdrop-blur-sm">
-            3D render available in item view
+        <div className="pointer-events-none absolute bottom-3 left-1/2 w-[90%] -translate-x-1/2 translate-y-2 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
+          <div className="rounded-2xl border border-white/20 bg-zinc-900/90 px-3 py-1.5 text-center text-[10px] font-bold uppercase leading-tight tracking-widest text-white/70 backdrop-blur-sm">
+            Photo is reference art — exact colors shown in 3D render
           </div>
         </div>
       </div>

@@ -30,6 +30,13 @@ export default function TruckViewerCard({
       <div className="absolute inset-0 bg-white/10" />
       <div className="relative aspect-square">
         <ItemDisplay slug={slug} alt={alt} heroOverride={heroOverride} />
+        {isItem && (
+          <div className="pointer-events-none absolute bottom-3 left-1/2 w-[90%] -translate-x-1/2">
+            <div className="rounded-2xl border border-white/20 bg-zinc-900/90 px-3 py-1.5 text-center text-[10px] font-bold uppercase leading-tight tracking-widest text-white/70 backdrop-blur-sm">
+              3D render above shows exact colors
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
