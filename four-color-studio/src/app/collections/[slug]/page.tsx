@@ -12,6 +12,7 @@ import FixedPageBackground from "@/components/FixedPageBackground";
 import TruckGuyColorSelector from "@/components/TruckGuyColorSelector";
 import StickFamilySelector from "@/components/StickFamilySelector";
 import HeroBranchAccordion from "@/components/HeroBranchAccordion";
+import HolidayAccordion from "@/components/HolidayAccordion";
 
 // Registry of custom collection components keyed by Collection.componentKey
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -33,6 +34,9 @@ export default async function CollectionPage({
   // Hero collection is huge (177+ items) and heavily duplicated across branches —
   // show a collapsible accordion grouped by branch instead of one long flat grid.
   const groupByBranch = collection.slug === 'hero';
+  // Holiday containers are seeded ahead of any items existing, so this renders
+  // even at zero items — see the length===0 check below.
+  const groupByHoliday = collection.slug === 'holiday';
   const items = collection.items;
 
   return (
@@ -95,6 +99,12 @@ export default async function CollectionPage({
               <p className="text-zinc-500">Unknown component: {collection.componentKey}</p>
             );
           })()
+        ) : groupByHoliday ? (
+          <HolidayAccordion
+            items={items}
+            collectionSlug={collection.slug}
+            schemeName={collection.pricingScheme.name}
+          />
         ) : collection.items.length === 0 ? (
           <p className="text-zinc-500">No items in this collection yet.</p>
         ) : groupByBranch ? (
