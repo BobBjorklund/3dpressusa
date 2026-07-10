@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { configTiersForDisplay } from "@/lib/storefront/pricing-config";
+import { needsPixelationDisclaimer, PIXELATION_DISCLAIMER_TEXT } from "@/lib/storefront/pixelation-disclaimer";
 
 type Item = {
   slug: string;
@@ -23,6 +24,7 @@ export default function ItemCard({
     .join(" · ");
 
   const imgSrc = item.heroOverride ?? `/items/${item.slug}-hero.png`;
+  const showPixelationDisclaimer = needsPixelationDisclaimer(item.slug);
 
   return (
     <Link
@@ -44,6 +46,11 @@ export default function ItemCard({
         </div>
       </div>
       <div className="p-4">
+        {showPixelationDisclaimer && (
+          <div className="mb-2 rounded-lg border border-amber-400/30 bg-amber-400/10 px-2.5 py-1.5 text-[10px] font-semibold leading-snug text-amber-200">
+            {PIXELATION_DISCLAIMER_TEXT}
+          </div>
+        )}
         <h3 className="font-black leading-tight">{item.name}</h3>
         {item.description && (
           <p className="mt-1 text-sm text-zinc-400 line-clamp-2">{item.description}</p>

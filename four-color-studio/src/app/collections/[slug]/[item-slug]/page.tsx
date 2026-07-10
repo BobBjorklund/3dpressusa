@@ -10,6 +10,7 @@ import EyebrowBadge from "@/components/EyebrowBadge";
 import FixedPageBackground from "@/components/FixedPageBackground";
 import PricingTierCards from "@/components/PricingTierCards";
 import TruckViewerCard from "@/components/TruckViewerCard";
+import { needsPixelationDisclaimer, PIXELATION_DISCLAIMER_TEXT } from "@/lib/storefront/pixelation-disclaimer";
 
 export default async function ItemPage({
   params,
@@ -54,6 +55,12 @@ export default async function ItemPage({
                 <p className="mt-3 text-lg leading-7 text-zinc-300">{item.description}</p>
               )}
             </div>
+
+            {needsPixelationDisclaimer(item.slug) && (
+              <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-semibold leading-snug text-amber-200">
+                {PIXELATION_DISCLAIMER_TEXT}
+              </div>
+            )}
 
             <PricingTierCards
               tiers={tiers.map((t) => ({
