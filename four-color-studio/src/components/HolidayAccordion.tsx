@@ -75,7 +75,7 @@ export default function HolidayAccordion({
     (a, b) => a[1].daysUntil - b[1].daysUntil
   );
 
-  const [openHoliday, setOpenHoliday] = useState<string | null>(null);
+  const [openHoliday, setOpenHoliday] = useState<string | null>(groupList[0]?.[0] ?? null);
 
   return (
     <div className="flex flex-col gap-3">

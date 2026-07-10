@@ -73,7 +73,7 @@ export default function HeroBranchAccordion({
 
   const groupList = [...groups.entries()].sort((a, b) => a[1].label.localeCompare(b[1].label));
 
-  const [openBranch, setOpenBranch] = useState<string | null>(null);
+  const [openBranch, setOpenBranch] = useState<string | null>(groupList[0]?.[0] ?? null);
 
   return (
     <div className="flex flex-col gap-3">
