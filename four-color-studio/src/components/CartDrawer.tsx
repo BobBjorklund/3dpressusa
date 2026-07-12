@@ -4,6 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useCart } from "@/context/CartContext";
 import { calculateCart } from "@/lib/storefront/pricing";
+import { coverPrice } from "@/lib/storefront/pricing-config";
 import BuyButton from "./BuyButton";
 
 const ThreeMFStatic = dynamic(() => import("./ThreeMFStatic"), { ssr: false });
@@ -143,10 +144,9 @@ export default function CartDrawer() {
                 );
               })}
 
-              {/* Base unit upsell */}
-              {!entries.some((e) => e.type === "cover") && (() => {
-                const hasSaleCaps = entries.some((e) => e.pricingType === "hero" || e.pricingType === "patriotic");
-                const basePrice = hasSaleCaps ? 9 : 10;
+              {/* Base unit upsell — only relevant once there's a cap in the cart to attach it to */}
+              {capCount > 0 && !entries.some((e) => e.type === "cover") && (() => {
+                const basePrice = coverPrice(entries.filter((e) => e.type === "cap").map((e) => e.pricingType));
                 return (
                   <Link
                     href="/base-unit"

@@ -22,7 +22,7 @@ const INTRO_SLIDES: CarouselSlide[] = [
     body: "Receiver-mounted base with a PETG retaining clip. Installs once, stays put, and never asks you to replace it — just the cap up front.",
     ctaLabel: "Get the Base Unit",
     ctaHref: "/base-unit",
-    priceLine: "$10 standard · $9 with hero or patriotic caps",
+    priceLine: "$10 standalone · $9 with a standard cap · $8 with hero or patriotic caps",
     bgClass: "from-zinc-900 via-neutral-900 to-black",
     backgroundImageUrl: "/truck-bg.png",
     productImageUrl: "/collections/base-unit-product.png",
@@ -47,7 +47,7 @@ const OUTRO_SLIDES: CarouselSlide[] = [
     body: "Buy across collections, keep the quantity discount, and build the exact setup you actually want. We're not here to upsell you a bundle you didn't ask for.",
     ctaLabel: "Browse Collections",
     ctaHref: "/collections",
-    priceLine: "Standard cover add-on: +$8 · Hero/Patriotic cover add-on: +$7",
+    priceLine: "Standard cover add-on: +$9 · Hero/Patriotic cover add-on: +$8",
     bgClass: "from-neutral-950 via-zinc-900 to-neutral-800",
   },
 ];
@@ -158,6 +158,30 @@ export default async function HomePage() {
       </section>
 
       <section className="relative border-b border-white/10 overflow-hidden">
+        <SectionGlow color="from-amber-400/14 via-orange-400/8 to-transparent" />
+        <div className="relative mx-auto max-w-7xl px-6 py-10 md:px-8">
+          <div className="flex flex-col items-start gap-4 rounded-[1.75rem] border border-amber-300/20 bg-amber-400/10 p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
+            <div>
+              <div className="text-xs font-black uppercase tracking-[0.25em] text-amber-300">No Hitch? No Problem.</div>
+              <h2 className="mt-2 text-2xl font-black leading-tight md:text-3xl">
+                Don&apos;t have a hitch but still have American pride?
+              </h2>
+              <p className="mt-3 max-w-2xl text-zinc-200/90">
+                Every single design on this site — every branch, every holiday, every one-off — is also available as a coaster set. No truck required.
+                Hero &amp; Patriot: 4 for $30. Everything else: 4 for $35.
+              </p>
+            </div>
+            <Link
+              href="/collections"
+              className="flex-shrink-0 rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-zinc-200"
+            >
+              Browse Designs →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative border-b border-white/10 overflow-hidden">
         <SectionGlow color="from-blue-500/14 via-red-400/10 to-transparent" />
         <div className="relative mx-auto max-w-7xl px-6 py-8 md:px-8 md:py-10">
           <HomeCarousel slides={slides} />
@@ -183,7 +207,7 @@ export default async function HomePage() {
             <FeatureCard
               eyebrow="The hardware"
               title="One base. Infinite looks."
-              body="Receiver-mounted base with a PETG retaining clip. Installs once. Stays forever. Swap caps anytime — $10 to start, $9 with hero or patriotic caps."
+              body="Receiver-mounted base with a PETG retaining clip. Installs once. Stays forever. Swap caps anytime — $10 standalone, $9 with a standard cap, $8 with hero or patriotic caps."
               tintClass="bg-gradient-to-br from-amber-400/16 via-white/[0.06] to-white/[0.03]"
             />
           </div>

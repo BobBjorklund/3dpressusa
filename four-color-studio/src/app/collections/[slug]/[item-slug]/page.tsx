@@ -3,8 +3,11 @@ import {
   getItem,
   collectionCarouselBg,
 } from "@/lib/storefront/collections";
-import { configTiersForDisplay, type CapPricingType } from "@/lib/storefront/pricing-config";
+import { configTiersForDisplay, getTierPrice, discountPercent, STANDARD_TIERS, type CapPricingType } from "@/lib/storefront/pricing-config";
 import AddToCartButton from "@/components/AddToCartButton";
+import AddCoverButton from "@/components/AddCoverButton";
+import GetAsCoastersButton from "@/components/GetAsCoastersButton";
+import AddBundleButton from "@/components/AddBundleButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import EyebrowBadge from "@/components/EyebrowBadge";
 import FixedPageBackground from "@/components/FixedPageBackground";
@@ -63,10 +66,19 @@ export default async function ItemPage({
             )}
 
             <PricingTierCards
-              tiers={tiers.map((t) => ({
-                price: `$${(t.unitPriceCents / 100).toFixed(0)}`,
-                label: t.minQty === 1 ? "1 cap" : `${t.minQty}+ caps`,
-              }))}
+              tiers={tiers.map((t) => {
+                const price = t.unitPriceCents / 100;
+                // Every tier of both schemes compares against the same fixed
+                // baseline (standard 1-cap price) — so a standard item's
+                // quantity tiers (3/5) show their own discount, and a hero
+                // item's 1-cap price shows its sale discount, on one scale.
+                const pct = discountPercent(price, getTierPrice(STANDARD_TIERS, 1));
+                return {
+                  price: `$${price.toFixed(0)}`,
+                  label: t.minQty === 1 ? "1 cap" : `${t.minQty}+ caps`,
+                  discountLabel: pct !== null ? `${pct}% off` : undefined,
+                };
+              })}
               note="Tier is based on total cap quantity across your entire order — mix any collections."
             >
               {item.highDetailAvailable && (
@@ -82,6 +94,24 @@ export default async function ItemPage({
                 name: item.name,
                 pricingType: item.pricingType as CapPricingType,
                 highDetailAvailable: item.highDetailAvailable,
+              }}
+            />
+
+            <AddCoverButton compact contextPricingType={item.pricingType as CapPricingType} />
+
+            <GetAsCoastersButton
+              item={{
+                slug: item.slug,
+                name: item.name,
+                pricingType: item.pricingType as CapPricingType,
+              }}
+            />
+
+            <AddBundleButton
+              item={{
+                slug: item.slug,
+                name: item.name,
+                pricingType: item.pricingType as CapPricingType,
               }}
             />
 

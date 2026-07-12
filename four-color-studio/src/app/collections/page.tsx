@@ -5,6 +5,7 @@ import {
   collectionProductImg,
   formatTiers,
 } from "@/lib/storefront/collections";
+import CoasterPromoBanner from "@/components/CoasterPromoBanner";
 
 export default async function CollectionsPage() {
   const collections = await getCollections();
@@ -29,6 +30,8 @@ export default async function CollectionsPage() {
             3D-printed in New Jersey. Each placard snaps onto the same base — mix collections, grab a few, pay less per cap the more you buy.
           </p>
         </div>
+
+        <CoasterPromoBanner />
 
         {collections.length === 0 ? (
           <p className="text-zinc-500">No collections available yet.</p>

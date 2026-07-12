@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
+import { coverPrice } from '@/lib/storefront/pricing-config';
 
 export default function BuyButton() {
   const { entries, cartItems, clearCart, capCount, addItem } = useCart();
@@ -10,8 +11,7 @@ export default function BuyButton() {
   const [showModal, setShowModal] = useState(false);
 
   const hasCover = entries.some((e) => e.type === 'cover');
-  const hasSaleCaps = entries.some((e) => e.pricingType === 'hero' || e.pricingType === 'patriotic');
-  const baseUnitPrice = hasSaleCaps ? 9 : 10;
+  const baseUnitPrice = coverPrice(entries.filter((e) => e.type === 'cap').map((e) => e.pricingType));
 
   function handleCheckoutClick() {
     if (cartItems.length === 0) return;

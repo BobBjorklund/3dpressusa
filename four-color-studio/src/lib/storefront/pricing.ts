@@ -1,7 +1,9 @@
-import { STANDARD_TIERS, HERO_TIERS, getTierPrice, CartItem } from "./pricing-config";
+import { STANDARD_TIERS, HERO_TIERS, getTierPrice, coasterPackPrice, coverPrice as coverPriceFor, bundlePrice, CartItem } from "./pricing-config";
 export function calculateCart(items: CartItem[]) {
   const capItems = items.filter((i) => i.type === "cap");
   const coverItems = items.filter((i) => i.type === "cover");
+  const coasterItems = items.filter((i) => i.type === "coaster");
+  const bundleItems = items.filter((i) => i.type === "bundle");
 
   const totalCaps = capItems.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -37,23 +39,48 @@ export function calculateCart(items: CartItem[]) {
     });
   }
 
-  // COVER
-  // $10 standard, $9 if any hero/patriotic (sale) caps in order
+  // COVER — $10 standalone, $9 add-on with standard caps, $8 add-on with hero/patriotic caps
   if (coverItems.length > 0) {
-    const coverPrice = capItems.some((c) => c.pricingType === "hero" || c.pricingType === "patriotic")
-      ? 9
-      : 10;
+    const unitPrice = coverPriceFor(capItems.map((c) => c.pricingType));
 
     for (const cover of coverItems) {
-      const itemTotal = coverPrice * cover.quantity;
+      const itemTotal = unitPrice * cover.quantity;
       subtotal += itemTotal;
 
       breakdown.push({
         ...cover,
-        unitPrice: coverPrice,
+        unitPrice,
         itemTotal,
       });
     }
+  }
+
+  // COASTERS — fixed 4-packs of one design, no cross-item lane-mixing logic;
+  // each pack is priced on its own, independent of everything else in the cart.
+  for (const coaster of coasterItems) {
+    const unitPrice = coasterPackPrice(coaster.pricingType);
+    const itemTotal = unitPrice * coaster.quantity;
+    subtotal += itemTotal;
+
+    breakdown.push({
+      ...coaster,
+      unitPrice,
+      itemTotal,
+    });
+  }
+
+  // BUNDLE — base unit + faceplate + coaster 4-pack, single fixed price;
+  // does not interact with cap tiering or cover/coaster pricing.
+  for (const bundle of bundleItems) {
+    const unitPrice = bundlePrice(bundle.pricingType);
+    const itemTotal = unitPrice * bundle.quantity;
+    subtotal += itemTotal;
+
+    breakdown.push({
+      ...bundle,
+      unitPrice,
+      itemTotal,
+    });
   }
 
   return {

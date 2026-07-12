@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import ContentCard from "./ContentCard";
 
-export type PricingTier = { price: string; label: string };
+export type PricingTier = { price: string; label: string; discountLabel?: string };
 
 export default function PricingTierCards({
   tiers,
@@ -23,6 +23,9 @@ export default function PricingTierCards({
           >
             <div className="text-xl font-black text-amber-200">{tier.price}</div>
             <div className="text-[10px] font-bold text-white/50 mt-0.5">{tier.label}</div>
+            {tier.discountLabel && (
+              <div className="text-[10px] font-bold text-emerald-300 mt-0.5">{tier.discountLabel}</div>
+            )}
           </div>
         ))}
       </div>

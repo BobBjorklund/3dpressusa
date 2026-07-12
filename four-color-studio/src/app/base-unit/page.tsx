@@ -4,6 +4,12 @@ import ContentCard from "@/components/ContentCard";
 import EyebrowBadge from "@/components/EyebrowBadge";
 import PricingTierCards from "@/components/PricingTierCards";
 import TruckViewerCard from "@/components/TruckViewerCard";
+import {
+  COVER_PRICE_STANDALONE,
+  COVER_PRICE_ADDON_STANDARD,
+  COVER_PRICE_ADDON_HERO,
+  discountPercent,
+} from "@/lib/storefront/pricing-config";
 
 export default function BaseUnitPage() {
   return (
@@ -55,10 +61,25 @@ export default function BaseUnitPage() {
 
             <PricingTierCards
               tiers={[
-                { price: "$10", label: "standard" },
-                { price: "$9", label: "w/ hero caps" },
+                { price: `$${COVER_PRICE_STANDALONE}`, label: "standalone" },
+                {
+                  price: `$${COVER_PRICE_ADDON_STANDARD}`,
+                  label: "w/ a cap",
+                  discountLabel: (() => {
+                    const pct = discountPercent(COVER_PRICE_ADDON_STANDARD, COVER_PRICE_STANDALONE);
+                    return pct !== null ? `${pct}% off` : undefined;
+                  })(),
+                },
+                {
+                  price: `$${COVER_PRICE_ADDON_HERO}`,
+                  label: "w/ hero caps",
+                  discountLabel: (() => {
+                    const pct = discountPercent(COVER_PRICE_ADDON_HERO, COVER_PRICE_STANDALONE);
+                    return pct !== null ? `${pct}% off` : undefined;
+                  })(),
+                },
               ]}
-              note="Discount applies automatically when hero or patriotic caps are in your order."
+              note="Discount applies automatically based on what's already in your order."
             />
 
             <AddCoverButton />
