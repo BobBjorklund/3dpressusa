@@ -8,8 +8,8 @@ import { calculateCart } from "@/lib/storefront/pricing";
 export type CartEntry = {
   id: string;             // slug, or slug::color1::color2 for color-configured items
   slug: string;
-  type: "cap" | "cover" | "coaster" | "bundle";
-  quantity: number;       // coasters: number of 4-packs; bundle: number of bundles
+  type: "cap" | "cover" | "coaster";
+  quantity: number;       // coasters: number of 4-packs
   pricingType?: CapPricingType;
   highDetail?: boolean;
   name: string;

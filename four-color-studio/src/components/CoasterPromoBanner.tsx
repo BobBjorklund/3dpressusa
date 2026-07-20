@@ -7,7 +7,7 @@ export default function CoasterPromoBanner() {
         </p>
         <p className="mt-1 text-sm text-white/70">
           Coasters are fun for everyone — any design in any collection is available as a coaster set.
-          Hero &amp; Patriot: 4 for $30. Everything else: 4 for $35.
+          Hero &amp; Patriot: 4 for $20. Everything else: 4 for $25.
         </p>
       </div>
       <span className="flex-shrink-0 rounded-full border border-amber-300/30 bg-amber-400/15 px-4 py-2 text-xs font-black uppercase tracking-wide text-amber-200">

@@ -1,10 +1,10 @@
 export type CapPricingType = "standard" | "hero" | "patriotic" | "custom";
 export type CartItem = {
   id: string;
-  type: "cap" | "cover" | "coaster" | "bundle";
-  quantity: number; // coasters: number of 4-packs; bundle: number of bundles
+  type: "cap" | "cover" | "coaster";
+  quantity: number; // coasters: number of 4-packs
 
-  pricingType?: CapPricingType; // caps, coasters, and bundles
+  pricingType?: CapPricingType; // caps and coasters
   highDetail?: boolean; // custom only
 };
 
@@ -12,8 +12,8 @@ export type CartItem = {
 // within a pack) — any existing item can be ordered this way using its own
 // artwork as the reference, with no separate Item/collection/page needed.
 export const COASTER_PACK_SIZE = 4;
-export const COASTER_PACK_PRICE_HERO = 30; // hero/patriotic collections
-export const COASTER_PACK_PRICE_STANDARD = 35; // everything else
+export const COASTER_PACK_PRICE_HERO = 20; // hero/patriotic collections
+export const COASTER_PACK_PRICE_STANDARD = 25; // everything else
 
 export function coasterPackPrice(pricingType?: CapPricingType): number {
   return pricingType === "hero" || pricingType === "patriotic"
@@ -55,19 +55,6 @@ export function coverPrice(capPricingTypes: (CapPricingType | undefined)[]): num
   return COVER_PRICE_ADDON_STANDARD;
 }
 
-// "Base + Faceplate + Coasters" bundle — one base unit, one faceplate, and
-// one coaster 4-pack of the same design, single click. Fixed bundle price,
-// not the sum of the individually-tiered prices — doesn't interact with the
-// per-cap quantity tiers at all.
-export const BUNDLE_PRICE_HERO = 42; // hero/patriotic designs
-export const BUNDLE_PRICE_STANDARD = 48; // everything else
-
-export function bundlePrice(pricingType?: CapPricingType): number {
-  return pricingType === "hero" || pricingType === "patriotic"
-    ? BUNDLE_PRICE_HERO
-    : BUNDLE_PRICE_STANDARD;
-}
-
 // Returns display tiers derived from the hardcoded config — always in sync with checkout.
 // schemeName: "heroes" → hero tiers, anything else → standard tiers
 export function configTiersForDisplay(schemeName: string): { minQty: number; unitPriceCents: number }[] {
@@ -88,10 +75,3 @@ export function discountPercent(salePrice: number, referencePrice: number): numb
   if (referencePrice <= 0 || salePrice >= referencePrice) return null;
   return Math.round((1 - salePrice / referencePrice) * 100);
 }
-
-// Reference ("full price") baseline for the bundle's discount badge: each
-// component priced individually at its own non-discounted rate — 1 cap at
-// the standard 1-cap tier, 1 base unit standalone, 1 coaster pack standard —
-// used for both the standard and sale bundle SKUs.
-export const BUNDLE_REFERENCE_PRICE =
-  getTierPrice(STANDARD_TIERS, 1) + COVER_PRICE_STANDALONE + COASTER_PACK_PRICE_STANDARD;

@@ -7,7 +7,6 @@ import { configTiersForDisplay, getTierPrice, discountPercent, STANDARD_TIERS, t
 import AddToCartButton from "@/components/AddToCartButton";
 import AddCoverButton from "@/components/AddCoverButton";
 import GetAsCoastersButton from "@/components/GetAsCoastersButton";
-import AddBundleButton from "@/components/AddBundleButton";
 import Breadcrumb from "@/components/Breadcrumb";
 import EyebrowBadge from "@/components/EyebrowBadge";
 import FixedPageBackground from "@/components/FixedPageBackground";
@@ -100,14 +99,6 @@ export default async function ItemPage({
             <AddCoverButton compact contextPricingType={item.pricingType as CapPricingType} />
 
             <GetAsCoastersButton
-              item={{
-                slug: item.slug,
-                name: item.name,
-                pricingType: item.pricingType as CapPricingType,
-              }}
-            />
-
-            <AddBundleButton
               item={{
                 slug: item.slug,
                 name: item.name,

@@ -6,9 +6,8 @@ import type { CartItem } from '@/lib/storefront/pricing-config';
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Unit weights in grams
-// coaster: per 4-pack, bundle: cap+cover+coaster 4-pack together — rough
-// estimates pending a real scale reading, revisit before high-volume shipping
-const WEIGHT_G = { cap: 33, cover: 112, coaster: 160, bundle: 33 + 112 + 160 } as const; // cover = base(77) + sock(30) + clip(5)
+// coaster: per 4-pack — rough estimate pending a real scale reading, revisit before high-volume shipping
+const WEIGHT_G = { cap: 33, cover: 112, coaster: 160 } as const; // cover = base(77) + sock(30) + clip(5)
 const PACKAGING_G = 40; // bubble mailer
 
 function orderWeightG(items: CartItem[]): number {
@@ -49,7 +48,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
   }
 
-  const VALID_TYPES = new Set(['cap', 'cover', 'coaster', 'bundle']);
+  const VALID_TYPES = new Set(['cap', 'cover', 'coaster']);
   const VALID_PRICING = new Set(['standard', 'hero', 'patriotic', 'custom']);
   for (const item of items) {
     if (!VALID_TYPES.has(item.type)) {

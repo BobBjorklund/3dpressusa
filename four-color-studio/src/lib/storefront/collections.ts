@@ -42,6 +42,13 @@ export async function getItem(itemSlug: string) {
   });
 }
 
+export async function getItemsBySlugs(slugs: string[]) {
+  return prisma.item.findMany({
+    where: { slug: { in: slugs } },
+    include: { collection: true },
+  });
+}
+
 // ── Image path helpers ────────────────────────────────────────────────────────
 // Convention: /public/collections/{slug}-carousel.png, /public/collections/{slug}-product.png
 // Override fields in DB take precedence.

@@ -1,6 +1,14 @@
 import Link from "next/link";
 import HomeCarousel, { CarouselSlide } from "@/components/HomeCarousel";
-import { getCollections, collectionCarouselBg, collectionProductImg, formatTiers } from "@/lib/storefront/collections";
+import { getCollections, getItemsBySlugs, collectionCarouselBg, collectionProductImg, formatTiers } from "@/lib/storefront/collections";
+import BestSellersSidebar, { type BestSellerItem } from "@/components/BestSellersSidebar";
+
+const BEST_SELLER_SLUGS = [
+  "patriot-rwb-eagle",
+  "patriot-250",
+  "patriot-stars-stripes-and-spine-male",
+  "patriot-freedom-isnt-free",
+];
 
 // ── Static slides (non-collection) ───────────────────────────────────────────
 
@@ -107,6 +115,17 @@ function FeatureCard({ eyebrow, title, body, tintClass }: { eyebrow: string; tit
 export default async function HomePage() {
   const collections = await getCollections();
 
+  const bestSellerItems = await getItemsBySlugs(BEST_SELLER_SLUGS);
+  const bestSellerBySlug = new Map(bestSellerItems.map((item) => [item.slug, item]));
+  const bestSellers: BestSellerItem[] = BEST_SELLER_SLUGS
+    .map((slug) => bestSellerBySlug.get(slug))
+    .filter((item): item is NonNullable<typeof item> => item !== undefined)
+    .map((item) => ({
+      slug: item.slug,
+      name: item.name,
+      collectionSlug: item.collection.slug,
+    }));
+
   const collectionSlides: CarouselSlide[] = collections.map((c) => ({
     id: c.slug,
     eyebrow: c.eyebrow ?? c.name,
@@ -125,6 +144,8 @@ export default async function HomePage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
       <GlobalBackdrop />
+
+      <BestSellersSidebar items={bestSellers} />
 
       <section className="relative border-b border-white/10 overflow-hidden">
         <SectionGlow />
@@ -168,7 +189,7 @@ export default async function HomePage() {
               </h2>
               <p className="mt-3 max-w-2xl text-zinc-200/90">
                 Every single design on this site — every branch, every holiday, every one-off — is also available as a coaster set. No truck required.
-                Hero &amp; Patriot: 4 for $30. Everything else: 4 for $35.
+                Hero &amp; Patriot: 4 for $20. Everything else: 4 for $25.
               </p>
             </div>
             <Link

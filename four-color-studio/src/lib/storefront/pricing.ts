@@ -1,9 +1,8 @@
-import { STANDARD_TIERS, HERO_TIERS, getTierPrice, coasterPackPrice, coverPrice as coverPriceFor, bundlePrice, CartItem } from "./pricing-config";
+import { STANDARD_TIERS, HERO_TIERS, getTierPrice, coasterPackPrice, coverPrice as coverPriceFor, CartItem } from "./pricing-config";
 export function calculateCart(items: CartItem[]) {
   const capItems = items.filter((i) => i.type === "cap");
   const coverItems = items.filter((i) => i.type === "cover");
   const coasterItems = items.filter((i) => i.type === "coaster");
-  const bundleItems = items.filter((i) => i.type === "bundle");
 
   const totalCaps = capItems.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -64,20 +63,6 @@ export function calculateCart(items: CartItem[]) {
 
     breakdown.push({
       ...coaster,
-      unitPrice,
-      itemTotal,
-    });
-  }
-
-  // BUNDLE — base unit + faceplate + coaster 4-pack, single fixed price;
-  // does not interact with cap tiering or cover/coaster pricing.
-  for (const bundle of bundleItems) {
-    const unitPrice = bundlePrice(bundle.pricingType);
-    const itemTotal = unitPrice * bundle.quantity;
-    subtotal += itemTotal;
-
-    breakdown.push({
-      ...bundle,
       unitPrice,
       itemTotal,
     });
