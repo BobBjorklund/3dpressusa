@@ -12,15 +12,12 @@ type Item = {
   highDetailAvailable: boolean;
 };
 
-// Known multi-word branch prefixes must come first so the longest match wins
-// (e.g. "health-care-mom" is branch "health-care", not "health").
+// Known multi-word branch prefixes must come first so the longest match wins.
 const BRANCH_LABELS: [string, string][] = [
-  ["health-care", "Health Care"],
   ["coastguard", "Coast Guard"],
   ["spaceforce", "Space Force"],
   ["airforce", "Air Force"],
   ["marines", "Marines"],
-  ["dispatch", "Dispatch"],
   ["police", "Police"],
   ["army", "Army"],
   ["navy", "Navy"],
@@ -62,13 +59,24 @@ export default function HeroBranchAccordion({
     else groups.set(branch, { label, items: [item] });
   }
 
-  // Keep camo-* variants (camo-trad, camo-urban, camo-snow, camo-rwb, ...) contiguous
-  // within each branch, no separate heading — just a stable sort so they cluster together.
-  const isCamoVariant = (slug: string, branch: string) =>
-    slug.slice(branch.length + 1).startsWith("camo-");
+  // Fixed tile order within each branch. Anything outside this standard set
+  // (a branch-only extra like -wife, or police's honor-fallen drafts) isn't
+  // in STANDARD_TILE_ORDER and sorts first instead, in whatever relative
+  // order it arrived in (stable sort).
+  const STANDARD_TILE_ORDER = [
+    "male", "female", "thin-line", "trad-logo",
+    "camo-rwb", "camo-trad", "camo-snow", "camo-urban",
+    "honor-fallen", "parent", "support", "stand-with", "battle-tested",
+  ];
+
+  function tileRank(slug: string, branch: string): number {
+    const suffix = slug.slice(branch.length + 1);
+    const idx = STANDARD_TILE_ORDER.indexOf(suffix);
+    return idx === -1 ? -1 : idx;
+  }
 
   for (const [branch, group] of groups) {
-    group.items.sort((a, b) => Number(isCamoVariant(b.slug, branch)) - Number(isCamoVariant(a.slug, branch)));
+    group.items.sort((a, b) => tileRank(a.slug, branch) - tileRank(b.slug, branch));
   }
 
   const groupList = [...groups.entries()].sort((a, b) => a[1].label.localeCompare(b[1].label));
@@ -113,14 +121,27 @@ export default function HeroBranchAccordion({
             >
               <div className="overflow-hidden">
                 <div className="grid gap-5 border-t border-white/10 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {group.items.map((item) => (
-                    <ItemCard
-                      key={item.id}
-                      item={item}
-                      collectionSlug={collectionSlug}
-                      schemeName={schemeName}
-                    />
-                  ))}
+                  {(() => {
+                    // Branch-only extras (not in STANDARD_TILE_ORDER) pack into
+                    // the grid normally among themselves, but the first standard
+                    // tile is forced onto a fresh row instead of filling out
+                    // whatever's left of the extras' last row.
+                    const firstStandardIdx = group.items.findIndex(
+                      (item) => tileRank(item.slug, branch) !== -1
+                    );
+                    return group.items.map((item, i) => (
+                      <div
+                        key={item.id}
+                        className={i === firstStandardIdx ? "sm:col-start-1 lg:col-start-1 xl:col-start-1" : undefined}
+                      >
+                        <ItemCard
+                          item={item}
+                          collectionSlug={collectionSlug}
+                          schemeName={schemeName}
+                        />
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             </div>
