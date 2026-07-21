@@ -41,13 +41,16 @@ function compositeStickFamilySvg(encoded: string): string {
 
   for (let ri = 0; ri < numRows; ri++) {
     const row = slots.slice(ri * MAX_PER_ROW, (ri + 1) * MAX_PER_ROW);
+    // Center this row's slots within the full usable width when it has
+    // fewer than MAX_PER_ROW figures, instead of leaving it left-anchored.
+    const rowOffsetX = (usable - row.length * perSlotW) / 2;
     for (let si = 0; si < row.length; si++) {
       const { line, variant, halo } = row[si];
       const vDef = SF_VARIANTS[variant] ?? { heightRatio: 0.7, aspect: 0.5 };
       const figH = Math.min(baseH * vDef.heightRatio, perSlotW / vDef.aspect);
       const figW = figH * vDef.aspect;
 
-      const figX = PAD + si * perSlotW + (perSlotW - figW) / 2;
+      const figX = PAD + rowOffsetX + si * perSlotW + (perSlotW - figW) / 2;
       const figY = PAD + ri * (baseH + ROW_GAP) + baseH - figH;
 
       // Load the figure SVG and embed as data URI
