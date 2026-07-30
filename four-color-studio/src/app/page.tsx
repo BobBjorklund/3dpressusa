@@ -1,6 +1,6 @@
 import Link from "next/link";
 import HomeCarousel, { CarouselSlide } from "@/components/HomeCarousel";
-import { getCollections, getItemsBySlugs, collectionCarouselBg, collectionProductImg, formatTiers } from "@/lib/storefront/collections";
+import { getCollections, getItemsBySlugs, collectionCarouselBg, collectionProductImg, itemHeroImg, formatTiers } from "@/lib/storefront/collections";
 import BestSellersSidebar, { type BestSellerItem } from "@/components/BestSellersSidebar";
 
 const BEST_SELLER_SLUGS = [
@@ -112,6 +112,10 @@ function FeatureCard({ eyebrow, title, body, tintClass }: { eyebrow: string; tit
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// Collections/items only change when we ship a batch and redeploy — no
+// time-based revalidation needed. Static until the next `next build`.
+export const revalidate = false;
+
 export default async function HomePage() {
   const collections = await getCollections();
 
@@ -124,6 +128,7 @@ export default async function HomePage() {
       slug: item.slug,
       name: item.name,
       collectionSlug: item.collection.slug,
+      heroImg: itemHeroImg(item),
     }));
 
   const collectionSlides: CarouselSlide[] = collections.map((c) => ({
