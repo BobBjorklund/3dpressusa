@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAddedFlash } from "@/lib/useAddedFlash";
+import { CheckIcon, CartIcon } from "@/components/icons";
 import type { CapPricingType } from "@/lib/storefront/pricing-config";
 
 type InventoryColor = { id: string; name: string; hex: string };
@@ -123,7 +125,8 @@ export default function TruckGuyColorSelector({
   schemeName?: string;
   componentProps?: Record<string, unknown> | null;
 }) {
-  const { addItem, openCart } = useCart();
+  const { addItem } = useCart();
+  const { added, flash } = useAddedFlash();
 
   const [colors, setColors] = useState<InventoryColor[]>([]);
   const [loadingColors, setLoadingColors] = useState(true);
@@ -132,7 +135,6 @@ export default function TruckGuyColorSelector({
   const [logoColor, setLogoColor] = useState<InventoryColor | null>(null);
   const [bgColor, setBgColor] = useState<InventoryColor | null>(null);
   const [qty, setQty] = useState(1);
-  const [added, setAdded] = useState(false);
 
   useEffect(() => {
     fetch("/api/inventory-colors")
@@ -166,11 +168,7 @@ export default function TruckGuyColorSelector({
       colorHexes: [logoColor.hex, bgColor.hex],
     });
 
-    setAdded(true);
-    setTimeout(() => {
-      setAdded(false);
-      openCart();
-    }, 800);
+    flash();
   }
 
   const canAdd = !!selectedItem && !!logoColor && !!bgColor && !loadingColors;
@@ -315,16 +313,12 @@ export default function TruckGuyColorSelector({
           >
             {added ? (
               <>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckIcon />
                 Added!
               </>
             ) : (
               <>
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
-                </svg>
+                <CartIcon />
                 Add to Cart
               </>
             )}

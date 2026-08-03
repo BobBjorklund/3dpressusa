@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls public/items/truck-guys-*.3mf)"
+    ]
+  }
+}

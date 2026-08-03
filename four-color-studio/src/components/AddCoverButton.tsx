@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAddedFlash } from "@/lib/useAddedFlash";
+import { CheckIcon, CartIcon } from "@/components/icons";
 import { coverPrice, discountPercent, COVER_PRICE_STANDALONE, type CapPricingType } from "@/lib/storefront/pricing-config";
 
 export default function AddCoverButton({
@@ -15,8 +16,8 @@ export default function AddCoverButton({
   // whatever unrelated items happen to already be in the cart.
   contextPricingType?: CapPricingType;
 }) {
-  const { addItem, openCart, entries } = useCart();
-  const [added, setAdded] = useState(false);
+  const { addItem, entries } = useCart();
+  const { added, flash } = useAddedFlash();
 
   const alreadyInCart = entries.some((e) => e.type === "cover");
   const capPricingTypes = entries.filter((e) => e.type === "cap").map((e) => e.pricingType);
@@ -31,11 +32,7 @@ export default function AddCoverButton({
       quantity: 1,
       name: "Hitch Cover Base Unit",
     });
-    setAdded(true);
-    setTimeout(() => {
-      setAdded(false);
-      openCart();
-    }, 800);
+    flash();
   }
 
   if (compact) {
@@ -84,16 +81,12 @@ export default function AddCoverButton({
       >
         {added ? (
           <>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <CheckIcon />
             Added!
           </>
         ) : (
           <>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
-            </svg>
+            <CartIcon />
             {alreadyInCart
               ? "Add Another Base Unit"
               : `Add to Cart — $${price}${pct !== null ? ` (${pct}% off)` : ""}`}

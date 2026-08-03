@@ -7,6 +7,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia' as any,
 });
 
+// Stripe calls this once payment succeeds (configured as the webhook URL in
+// the Stripe dashboard). This is the *only* place an order actually gets
+// fulfilled — checkout/route.ts just creates the payment session and never
+// runs any of this. Two emails go out per order: one to us (fulfillment,
+// with a stick-family preview PNG attached if applicable) and one to the
+// customer (confirmation). Both are built from the same Stripe line items
+// fetched below, formatted differently for each audience.
+
 // ─── Stick family preview compositor ─────────────────────────────────────────
 
 const SF_VARIANTS: Record<string, { heightRatio: number; aspect: number }> = {
@@ -94,6 +102,24 @@ async function buildStickFamilyPng(encoded: string): Promise<Buffer | null> {
   }
 }
 
+// ─── Shared order-line HTML ───────────────────────────────────────────────────
+// Both the internal fulfillment email and the customer confirmation email
+// render the same "item / qty / total" rows, just with different table cell
+// styling (padding/border color/text color) to match each email's theme.
+function buildItemRowsHtml(
+  lineItems: Stripe.LineItem[],
+  cellStyle: { desc: string; qty: string; total: string },
+): string {
+  return lineItems
+    .map((item) => `
+      <tr>
+        <td style="${cellStyle.desc}">${item.description}</td>
+        <td style="${cellStyle.qty}">${item.quantity}</td>
+        <td style="${cellStyle.total}">$${((item.amount_total ?? 0) / 100).toFixed(2)}</td>
+      </tr>`)
+    .join('');
+}
+
 // ─── Email sender ─────────────────────────────────────────────────────────────
 
 async function brevoSend(
@@ -138,14 +164,11 @@ async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems:
   const shipping = session.collected_information?.shipping_details;
   const addr = shipping?.address;
 
-  const itemRows = lineItems
-    .map((item) => `
-      <tr>
-        <td style="padding:6px 12px;border-bottom:1px solid #333;">${item.description}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #333;text-align:center;">${item.quantity}</td>
-        <td style="padding:6px 12px;border-bottom:1px solid #333;text-align:right;">$${((item.amount_total ?? 0) / 100).toFixed(2)}</td>
-      </tr>`)
-    .join('');
+  const itemRows = buildItemRowsHtml(lineItems, {
+    desc: 'padding:6px 12px;border-bottom:1px solid #333;',
+    qty: 'padding:6px 12px;border-bottom:1px solid #333;text-align:center;',
+    total: 'padding:6px 12px;border-bottom:1px solid #333;text-align:right;',
+  });
 
   const html = `
     <div style="font-family:monospace;background:#0a0a0a;color:#e5e5e5;padding:32px;max-width:600px;">
@@ -217,16 +240,11 @@ async function sendCustomerEmail(session: Stripe.Checkout.Session, lineItems: St
       </div>`
     : '';
 
-  const itemRows = lineItems
-    .map((item) => `
-      <tr>
-        <td style="padding:10px 12px;border-bottom:1px solid #222;color:#e5e5e5;">${item.description}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #222;text-align:center;color:#999;">${item.quantity}</td>
-        <td style="padding:10px 12px;border-bottom:1px solid #222;text-align:right;color:#e5e5e5;">
-          $${((item.amount_total ?? 0) / 100).toFixed(2)}
-        </td>
-      </tr>`)
-    .join('');
+  const itemRows = buildItemRowsHtml(lineItems, {
+    desc: 'padding:10px 12px;border-bottom:1px solid #222;color:#e5e5e5;',
+    qty: 'padding:10px 12px;border-bottom:1px solid #222;text-align:center;color:#999;',
+    total: 'padding:10px 12px;border-bottom:1px solid #222;text-align:right;color:#e5e5e5;',
+  });
 
   const shippingCents = session.total_details?.amount_shipping ?? 0;
   const taxCents = session.total_details?.amount_tax ?? 0;

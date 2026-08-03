@@ -1,4 +1,12 @@
 import { STANDARD_TIERS, HERO_TIERS, getTierPrice, coasterPackPrice, coverPrice as coverPriceFor, CartItem } from "./pricing-config";
+
+// The single source of truth for cart totals — called from both the client
+// (CartContext, for the subtotal shown in the cart drawer) and the server
+// (checkout/route.ts, to price the Stripe line items) so the displayed price
+// and the charged price can never drift apart. All dollar prices/tiers live
+// in pricing-config.ts; this file only contains the *rules* for combining
+// them (tier lookup depends on total cap count, cover price depends on what
+// caps are in the same order, coasters are independent).
 export function calculateCart(items: CartItem[]) {
   const capItems = items.filter((i) => i.type === "cap");
   const coverItems = items.filter((i) => i.type === "cover");
@@ -8,6 +16,10 @@ export function calculateCart(items: CartItem[]) {
 
   let subtotal = 0;
 
+  // One entry per cart item (not per unit), each original item's fields
+  // spread with its computed unitPrice/itemTotal added — this is what
+  // CartDrawer reads per-line-item prices from, and what checkout/route.ts
+  // turns into Stripe line_items.
   const breakdown: any[] = [];
 
   // CAPS

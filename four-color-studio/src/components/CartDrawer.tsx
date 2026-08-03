@@ -5,6 +5,8 @@ import dynamic from "next/dynamic";
 import { useCart } from "@/context/CartContext";
 import { calculateCart } from "@/lib/storefront/pricing";
 import { coverPrice } from "@/lib/storefront/pricing-config";
+import { CartIcon } from "@/components/icons";
+import QuantityStepper from "@/components/QuantityStepper";
 import BuyButton from "./BuyButton";
 
 const ThreeMFStatic = dynamic(() => import("./ThreeMFStatic"), { ssr: false });
@@ -58,9 +60,7 @@ export default function CartDrawer() {
         <div className="flex-1 overflow-y-auto px-6 py-4">
           {entries.length === 0 ? (
             <div className="flex flex-col items-center gap-3 pt-12 text-center">
-              <svg className="h-12 w-12 text-white/20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
-              </svg>
+              <CartIcon className="h-12 w-12 text-white/20" strokeWidth={1.5} />
               <p className="text-sm text-white/40">Your cart is empty.</p>
             </div>
           ) : (
@@ -102,27 +102,10 @@ export default function CartDrawer() {
 
                     {/* Qty controls + line total + remove */}
                     <div className="mt-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => updateQty(entry.id, -1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12]"
-                        >
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-                          </svg>
-                        </button>
-                        <span className="w-5 text-center text-sm font-bold">{entry.quantity}</span>
-                        <button
-                          type="button"
-                          onClick={() => updateQty(entry.id, +1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12]"
-                        >
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      </div>
+                      <QuantityStepper
+                        value={entry.quantity}
+                        onDelta={(d) => updateQty(entry.id, d)}
+                      />
 
                       <div className="flex items-center gap-3">
                         {b && (

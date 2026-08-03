@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAddedFlash } from "@/lib/useAddedFlash";
+import QuantityStepper from "@/components/QuantityStepper";
 import type { CapPricingType } from "@/lib/storefront/pricing-config";
 import { coasterPackPrice, COASTER_PACK_SIZE, COASTER_PACK_PRICE_STANDARD, discountPercent } from "@/lib/storefront/pricing-config";
 
@@ -18,9 +20,9 @@ type Props = {
 // design, no mixing designs within a pack. Reuses the item's own 3MF/artwork
 // as the reference, so no separate item page or DB row is needed.
 export default function GetAsCoastersButton({ item }: Props) {
-  const { addItem, openCart } = useCart();
+  const { addItem } = useCart();
   const [packs, setPacks] = useState(1);
-  const [added, setAdded] = useState(false);
+  const { added, flash } = useAddedFlash();
 
   const packPrice = coasterPackPrice(item.pricingType);
   const pct = discountPercent(packPrice, COASTER_PACK_PRICE_STANDARD);
@@ -34,11 +36,7 @@ export default function GetAsCoastersButton({ item }: Props) {
       pricingType: item.pricingType,
       name: `${item.name} — Coasters (${COASTER_PACK_SIZE}-pack)`,
     });
-    setAdded(true);
-    setTimeout(() => {
-      setAdded(false);
-      openCart();
-    }, 800);
+    flash();
   }
 
   return (
@@ -52,31 +50,12 @@ export default function GetAsCoastersButton({ item }: Props) {
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setPacks((p) => Math.max(1, p - 1))}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12]"
-            aria-label="Fewer packs"
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20 12H4" />
-            </svg>
-          </button>
-          <span className="w-20 text-center text-sm font-bold">
-            {packs} pack{packs > 1 ? "s" : ""}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPacks((p) => p + 1)}
-            className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12]"
-            aria-label="More packs"
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-        </div>
+        <QuantityStepper
+          value={packs}
+          onDelta={(d) => setPacks((p) => Math.max(1, p + d))}
+          label={`${packs} pack${packs > 1 ? "s" : ""}`}
+          widthClassName="w-20"
+        />
 
         <button
           type="button"

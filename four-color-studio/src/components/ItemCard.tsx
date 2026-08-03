@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { configTiersForDisplay } from "@/lib/storefront/pricing-config";
+import { formatTiers } from "@/lib/storefront/pricing-config";
 import { needsPixelationDisclaimer, PIXELATION_DISCLAIMER_TEXT } from "@/lib/storefront/pixelation-disclaimer";
 
 type Item = {
@@ -19,9 +19,8 @@ export default function ItemCard({
   collectionSlug: string;
   schemeName: string;
 }) {
-  const priceLine = configTiersForDisplay(schemeName)
-    .map((t) => `${t.minQty}/$${(t.unitPriceCents / 100).toFixed(0)}`)
-    .join(" · ");
+  // Delegates to the shared formatter so this always matches checkout pricing.
+  const priceLine = formatTiers(schemeName);
 
   const imgSrc = item.heroOverride ?? `/items/${item.slug}-hero.png`;
   const showPixelationDisclaimer = needsPixelationDisclaimer(item.slug);

@@ -5,6 +5,13 @@ import type { CartItem } from '@/lib/storefront/pricing-config';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
+// Entry point for "Checkout" in the cart drawer (see BuyButton.tsx). Takes
+// the client's cart, re-prices it server-side with calculateCart (never
+// trust client-computed totals), estimates shipping weight/cost, and creates
+// a Stripe Checkout Session. Stripe redirects the customer to `url` to pay;
+// once paid, Stripe calls /api/webhook (webhook/route.ts) to actually
+// fulfill the order (send emails) — this route never sends anything itself.
+
 // Unit weights in grams
 // coaster: per 4-pack — rough estimate pending a real scale reading, revisit before high-volume shipping
 const WEIGHT_G = { cap: 33, cover: 112, coaster: 160 } as const; // cover = base(77) + sock(30) + clip(5)

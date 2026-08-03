@@ -5,6 +5,14 @@ import { CartItem, CapPricingType } from "@/lib/storefront/pricing-config";
 import type { SlotConfig } from "@/components/StickFamilySelector";
 import { calculateCart } from "@/lib/storefront/pricing";
 
+// The cart is stored as two shapes on purpose:
+//   - CartEntry (below): everything the UI needs to *display* a line item —
+//     name, color choices, stick-family config, etc.
+//   - CartItem (from pricing-config.ts): the stripped-down subset that
+//     calculateCart() actually prices — just type/quantity/pricingType.
+// `cartItems` (derived below) converts entries → CartItem[] on every render,
+// so calculateCart() never has to know about display-only fields, and the
+// checkout API only ever receives the fields it needs.
 export type CartEntry = {
   id: string;             // slug, or slug::color1::color2 for color-configured items
   slug: string;

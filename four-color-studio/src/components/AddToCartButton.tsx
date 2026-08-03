@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
+import { useAddedFlash } from "@/lib/useAddedFlash";
+import { CheckIcon, CartIcon } from "@/components/icons";
 import type { CapPricingType } from "@/lib/storefront/pricing-config";
 
 type Props = {
@@ -14,9 +16,9 @@ type Props = {
 };
 
 export default function AddToCartButton({ item }: Props) {
-  const { addItem, openCart } = useCart();
+  const { addItem } = useCart();
   const [highDetail, setHighDetail] = useState(false);
-  const [added, setAdded] = useState(false);
+  const { added, flash } = useAddedFlash();
 
   function handleAdd() {
     addItem({
@@ -28,11 +30,7 @@ export default function AddToCartButton({ item }: Props) {
       name: item.name,
     });
 
-    setAdded(true);
-    setTimeout(() => {
-      setAdded(false);
-      openCart();
-    }, 800);
+    flash();
   }
 
   return (
@@ -78,16 +76,12 @@ export default function AddToCartButton({ item }: Props) {
       >
         {added ? (
           <>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
+            <CheckIcon />
             Added!
           </>
         ) : (
           <>
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
-            </svg>
+            <CartIcon />
             Add to Cart
           </>
         )}

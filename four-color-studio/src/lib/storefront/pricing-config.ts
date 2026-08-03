@@ -65,6 +65,15 @@ export function configTiersForDisplay(schemeName: string): { minQty: number; uni
   }));
 }
 
+// Renders configTiersForDisplay as a compact "5/$8 · 3/$9 · 1/$10" string.
+// Lives here (not in collections.ts) because collections.ts imports Prisma —
+// this needs to be safe to import from client components like ItemCard.
+export function formatTiers(schemeName: string): string {
+  return configTiersForDisplay(schemeName)
+    .map((t) => `${t.minQty}/$${(t.unitPriceCents / 100).toFixed(0)}`)
+    .join(" · ");
+}
+
 // ── Discount display ─────────────────────────────────────────────────────────
 // "X% off" badges shown alongside every sale price, computed from the actual
 // prices rather than hardcoded — so the badge always matches reality even if
