@@ -141,7 +141,8 @@ export default async function HomePage() {
 
   return (
     <main className="relative min-h-screen bg-gunmetal text-white">
-      <BestSellersSidebar items={bestSellers} />
+      {/* Disabled for now — covered too much of the page on real viewports. */}
+      {/* <BestSellersSidebar items={bestSellers} /> */}
 
       <div className="flex flex-col gap-6 py-6 md:gap-8 md:py-8">
 
