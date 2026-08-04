@@ -34,18 +34,18 @@ export default function GetAsCoastersButton({ item }: Props) {
       type: "coaster",
       quantity: packs,
       pricingType: item.pricingType,
-      name: `${item.name} — Coasters (${COASTER_PACK_SIZE}-pack)`,
+      name: `${item.name} - Coasters (${COASTER_PACK_SIZE}-pack)`,
     });
     flash();
   }
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+    <div className="flex flex-col gap-3 rounded-sm border border-brushed-aluminum/25 bg-steel-panel p-4">
       <div>
-        <p className="text-sm font-bold">Get as Coasters</p>
-        <p className="mt-0.5 text-xs text-white/50">
-          Same design, {COASTER_PACK_SIZE} for ${packPrice} — no hitch required.
-          {pct !== null && <span className="ml-1.5 font-bold text-emerald-300">{pct}% off</span>}
+        <p className="font-display text-sm uppercase tracking-wide text-white">Get as Coasters</p>
+        <p className="mt-0.5 text-xs text-brushed-aluminum">
+          Same design, {COASTER_PACK_SIZE} for ${packPrice} - no hitch required.
+          {pct !== null && <span className="ml-1.5 font-bold text-emerald-400">{pct}% off</span>}
         </p>
       </div>
 
@@ -61,13 +61,13 @@ export default function GetAsCoastersButton({ item }: Props) {
           type="button"
           onClick={handleAdd}
           disabled={added}
-          className={`rounded-full px-5 py-2.5 text-sm font-black transition active:scale-[0.98] disabled:opacity-50 ${
+          className={`rounded-sm px-5 py-2.5 font-display text-sm uppercase tracking-wide transition active:scale-[0.98] disabled:opacity-50 ${
             added
-              ? "bg-emerald-500 text-white"
-              : "bg-white/10 text-white hover:bg-white/20"
+              ? "bg-emerald-600 text-white"
+              : "border border-plate-red/40 bg-plate-red/10 text-plate-red hover:bg-plate-red/20"
           }`}
         >
-          {added ? "Added!" : `Add — $${(packPrice * packs).toFixed(0)}`}
+          {added ? "Added!" : `Add - $${(packPrice * packs).toFixed(0)}`}
         </button>
       </div>
     </div>

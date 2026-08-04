@@ -74,7 +74,7 @@ export default function HolidayAccordion({
       key,
       label: group.label,
       items: group.items,
-      emptyMessage: "No items yet — coming soon.",
+      emptyMessage: "No items yet - coming soon.",
     }));
 
   return (

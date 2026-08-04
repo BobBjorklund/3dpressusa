@@ -45,11 +45,11 @@ export default async function CollectionPage({
       <FixedPageBackground src={collectionCarouselBg(collection)} />
 
       {/* Hero */}
-      <section className="border-b border-white/10">
-        <div className="mx-auto max-w-7xl px-6 py-16 md:px-8 md:py-20">
+      <section className="border-b border-brushed-aluminum/15">
+        <div className="mx-auto max-w-7xl px-6 py-12 md:px-8 md:py-16">
           <Link
             href="/collections"
-            className="mb-8 inline-flex items-center gap-1 text-xs font-black uppercase tracking-[0.2em] text-white/50 transition hover:text-white/80"
+            className="mb-8 inline-flex items-center gap-1 font-mono text-xs uppercase tracking-[0.2em] text-brushed-aluminum transition hover:text-white"
           >
             ← Collections
           </Link>
@@ -59,16 +59,16 @@ export default async function CollectionPage({
               {collection.eyebrow && (
                 <EyebrowBadge className="mb-4">{collection.eyebrow}</EyebrowBadge>
               )}
-              <h1 className="text-3xl font-black tracking-tight md:text-4xl">
+              <h1 className="font-display text-4xl uppercase tracking-tight md:text-5xl">
                 {collection.name}
               </h1>
               {collection.subtitle && (
-                <p className="mt-2 text-lg text-zinc-300">{collection.subtitle}</p>
+                <p className="mt-2 text-lg text-brushed-aluminum">{collection.subtitle}</p>
               )}
               {collection.description && (
-                <p className="mt-4 max-w-2xl text-zinc-400">{collection.description}</p>
+                <p className="mt-4 max-w-2xl text-brushed-aluminum">{collection.description}</p>
               )}
-              <div className="mt-5 w-fit rounded-full border border-amber-300/30 bg-amber-400/15 px-4 py-2 text-sm font-bold text-amber-100">
+              <div className="mt-5 w-fit rounded-sm border border-hazard-yellow/40 bg-hazard-yellow/10 px-4 py-2 font-mono text-sm text-hazard-yellow">
                 {formatTiers(collection.pricingScheme.name)}
               </div>
             </div>
@@ -85,7 +85,7 @@ export default async function CollectionPage({
       </section>
 
       {/* Items — custom component or standard grid */}
-      <section className="mx-auto max-w-7xl px-6 py-12 md:px-8">
+      <section className={`mx-auto max-w-7xl px-6 py-12 md:px-8 ${collection.slug === "girly-girls" ? "theme-blush" : ""}`}>
         {collection.componentKey ? (
           (() => {
             const CustomComponent = COMPONENT_REGISTRY[collection.componentKey!];
@@ -96,7 +96,7 @@ export default async function CollectionPage({
                 componentProps={collection.componentProps as Record<string, unknown> | null}
               />
             ) : (
-              <p className="text-zinc-500">Unknown component: {collection.componentKey}</p>
+              <p className="text-brushed-aluminum">Unknown component: {collection.componentKey}</p>
             );
           })()
         ) : groupByHoliday ? (
@@ -106,7 +106,7 @@ export default async function CollectionPage({
             schemeName={collection.pricingScheme.name}
           />
         ) : collection.items.length === 0 ? (
-          <p className="text-zinc-500">No items in this collection yet.</p>
+          <p className="text-brushed-aluminum">No items in this collection yet.</p>
         ) : groupByBranch ? (
           <HeroBranchAccordion
             items={items}

@@ -20,4 +20,4 @@ export function needsPixelationDisclaimer(slug: string): boolean {
 }
 
 export const PIXELATION_DISCLAIMER_TEXT =
-  "Pixelated artwork is not representative of product quality — images are being updated to reflect true product look.";
+  "Pixelated artwork is not representative of product quality - images are being updated to reflect true product look.";

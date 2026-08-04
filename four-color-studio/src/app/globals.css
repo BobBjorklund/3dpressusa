@@ -1,26 +1,89 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Spec-plate palette — pulled from powder-coated hardware, not clipart flag colors */
+  --color-gunmetal: #1b1f24;
+  --color-steel-panel: #262b31;
+  --color-brushed-aluminum: #9ca3a8;
+  --color-plate-red: #c81e2c;
+  --color-federal-blue: #3d8bdd;
+  --color-hazard-yellow: #e8b93e;
+  --color-plate-ink: #ffffff; /* primary text color on a spec-plate surface */
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-gunmetal: var(--color-gunmetal);
+  --color-steel-panel: var(--color-steel-panel);
+  --color-brushed-aluminum: var(--color-brushed-aluminum);
+  --color-plate-red: var(--color-plate-red);
+  --color-federal-blue: var(--color-federal-blue);
+  --color-hazard-yellow: var(--color-hazard-yellow);
+  --color-plate-ink: var(--color-plate-ink);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-gunmetal);
+  color: #ffffff;
+  font-family: var(--font-body), Arial, Helvetica, sans-serif;
+}
+
+/* Hex-bolt motif used by the signature "spec plate" component */
+.rivet {
+  position: absolute;
+  z-index: 10;
+  width: 11px;
+  height: 11px;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: linear-gradient(135deg, #eceeef 0%, #c2c6c9 28%, #8b8f92 58%, #55585b 100%);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1.5px rgba(0, 0, 0, 0.6),
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 3px 1px rgba(255, 255, 255, 0.2),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.rivet::before {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(0, 0, 0, 0.25));
+}
+
+/* Diamond-plate (checker plate) texture for spec-plate surfaces — raised lozenge
+   bumps tiled in a staggered grid, echoing tread plate/tool-box steel.
+   Kept faint: this sits directly behind body copy, so it must lose to text. */
+.plate-texture {
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cellipse cx='8' cy='8' rx='6' ry='2.4' transform='rotate(45 8 8)' fill='rgba(255,255,255,0.13)'/%3E%3Cellipse cx='9.6' cy='9.6' rx='6' ry='2.4' transform='rotate(45 9.6 9.6)' fill='rgba(0,0,0,0.28)'/%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='22' height='22'%3E%3Cellipse cx='8' cy='8' rx='6' ry='2.4' transform='rotate(-45 8 8)' fill='rgba(255,255,255,0.13)'/%3E%3Cellipse cx='9.6' cy='9.6' rx='6' ry='2.4' transform='rotate(-45 9.6 9.6)' fill='rgba(0,0,0,0.28)'/%3E%3C/svg%3E");
+  background-size: 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+
+/* Per-collection plate re-theme — overrides the palette tokens on a wrapper,
+   so every descendant SpecPlate/ItemCard picks up the new surface/text colors
+   automatically with no per-component branching. Rivets stay real-metal
+   colored on purpose (bolts don't change color with the plate). */
+.theme-blush {
+  --color-steel-panel: #ec9fbf;
+  --color-brushed-aluminum: #5c2740;
+  --color-plate-ink: #1a0a12;
+  --color-hazard-yellow: #1a0a12;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

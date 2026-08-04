@@ -38,7 +38,7 @@ export default function AddToCartButton({ item }: Props) {
 
       {/* High detail toggle — custom caps only */}
       {item.highDetailAvailable && item.pricingType === "custom" && (
-        <label className="flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+        <label className="flex cursor-pointer items-center gap-3 rounded-sm border border-brushed-aluminum/25 bg-steel-panel px-4 py-3">
           <div className="relative">
             <input
               type="checkbox"
@@ -48,7 +48,7 @@ export default function AddToCartButton({ item }: Props) {
             />
             <div
               className={`h-5 w-9 rounded-full transition ${
-                highDetail ? "bg-amber-400" : "bg-white/20"
+                highDetail ? "bg-hazard-yellow" : "bg-brushed-aluminum/25"
               }`}
             />
             <div
@@ -58,8 +58,8 @@ export default function AddToCartButton({ item }: Props) {
             />
           </div>
           <div>
-            <span className="text-sm font-bold">High Detail</span>
-            <span className="ml-2 text-xs text-amber-300">+$1 per cap</span>
+            <span className="text-sm font-semibold text-white">High Detail</span>
+            <span className="ml-2 text-xs text-hazard-yellow">+$1 per cap</span>
           </div>
         </label>
       )}
@@ -68,10 +68,10 @@ export default function AddToCartButton({ item }: Props) {
         type="button"
         onClick={handleAdd}
         disabled={added}
-        className={`flex items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
+        className={`flex items-center justify-center gap-2 rounded-sm px-8 py-4 font-display text-base uppercase tracking-wide transition active:scale-[0.98] disabled:opacity-50 ${
           added
-            ? "bg-emerald-500 text-white"
-            : "bg-white text-black hover:bg-zinc-200"
+            ? "bg-emerald-600 text-white"
+            : "bg-plate-red text-white hover:bg-plate-red/85"
         }`}
       >
         {added ? (

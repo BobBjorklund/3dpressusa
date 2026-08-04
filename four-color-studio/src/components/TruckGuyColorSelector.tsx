@@ -15,9 +15,23 @@ type Item = {
   pricingType: string;
 };
 
-// Short label for color name (first meaningful word)
+// Title Cases a name, leaving short all-caps acronyms (PETG, PLA, ABS, TPU...)
+// alone instead of mangling them into "Petg".
+function properCase(name: string): string {
+  return name
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      if (word.length <= 4 && word === word.toUpperCase() && /[A-Z]/.test(word)) return word;
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
+// Short label for color name (last meaningful word, e.g. "Fuchsia" from
+// "Creality PETG Basic Fuchsia").
 function shortName(name: string) {
-  const parts = name.split(" ");
+  const parts = properCase(name).split(" ").filter(Boolean);
   return parts[parts.length - 1] ?? name;
 }
 
@@ -103,7 +117,7 @@ function LogoPreview({ itemSlug, logoHex, bgHex }: { itemSlug: string; logoHex: 
 
   return (
     <div
-      className="relative w-full max-w-xs aspect-square rounded-2xl border border-white/10 transition-colors duration-300 flex items-center justify-center p-8"
+      className="relative w-full max-w-xs aspect-square rounded-md border border-brushed-aluminum/25 transition-colors duration-300 flex items-center justify-center p-8"
       style={{ backgroundColor: bgHex }}
     >
       {colored ? (
@@ -154,7 +168,7 @@ export default function TruckGuyColorSelector({
     if (!selectedItem || !logoColor || !bgColor) return;
 
     const colorDesc = `${shortName(logoColor.name)} logo / ${shortName(bgColor.name)} base`;
-    const displayName = `${selectedItem.name} — ${colorDesc}`;
+    const displayName = `${selectedItem.name} - ${colorDesc}`;
     const id = `${selectedItem.slug}::${logoColor.id}::${bgColor.id}`;
 
     addItem({
@@ -178,7 +192,7 @@ export default function TruckGuyColorSelector({
 
       {/* LEFT — preview */}
       <div className="flex flex-col gap-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
           Preview
         </div>
         <LogoPreview
@@ -187,12 +201,12 @@ export default function TruckGuyColorSelector({
           bgHex={bgColor?.hex ?? "#1a1a1a"}
         />
         {selectedItem?.slug === "truck-guys-jeep" && (
-          <p className="text-xs text-amber-400/80">
-            Due to technical limitations, the preview is incomplete — however &ldquo;JEEP&rdquo; is written in the windshield. Trust us, it&rsquo;ll be there on your print.
+          <p className="text-xs text-hazard-yellow/90">
+            Due to technical limitations, the preview is incomplete - however &ldquo;JEEP&rdquo; is written in the windshield. Trust us, it&rsquo;ll be there on your print.
           </p>
         )}
-        <p className="text-xs text-zinc-600">
-          Approximate color preview — actual print may vary slightly by filament batch.
+        <p className="text-xs text-brushed-aluminum/60">
+          Approximate color preview - actual print may vary slightly by filament batch.
         </p>
       </div>
 
@@ -204,7 +218,7 @@ export default function TruckGuyColorSelector({
 
           {/* Brand */}
           <div className="flex flex-col gap-1">
-            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+            <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
               Brand
             </div>
             {items.map((item) => (
@@ -212,20 +226,20 @@ export default function TruckGuyColorSelector({
                 key={item.slug}
                 type="button"
                 onClick={() => setSelectedItem(item)}
-                className={`rounded-xl border px-3 py-2.5 text-left transition ${
+                className={`rounded-sm border px-3 py-2.5 text-left transition ${
                   selectedItem?.slug === item.slug
-                    ? "border-white/40 bg-white/[0.10] text-white"
-                    : "border-white/10 bg-white/[0.03] text-white/60 hover:border-white/20 hover:text-white/80"
+                    ? "border-plate-red/50 bg-plate-red/10 text-white"
+                    : "border-brushed-aluminum/20 bg-white/[0.03] text-brushed-aluminum hover:border-brushed-aluminum/40 hover:text-white/80"
                 }`}
               >
-                <div className="text-sm font-black">{item.name}</div>
+                <div className="text-sm font-semibold">{item.name}</div>
               </button>
             ))}
           </div>
 
           {/* Logo Color */}
           <div className="flex flex-col">
-            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+            <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
               Logo
             </div>
             <div className="grid grid-cols-2 gap-1.5">
@@ -234,15 +248,15 @@ export default function TruckGuyColorSelector({
                   key={c.id}
                   type="button"
                   onClick={() => setLogoColor(c)}
-                  title={c.name}
-                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition ${
+                  title={properCase(c.name)}
+                  className={`flex items-center gap-1.5 rounded-sm px-1.5 py-1.5 text-left transition ${
                     logoColor?.id === c.id
-                      ? "bg-white/[0.10] text-white"
-                      : "text-white/50 hover:bg-white/[0.05] hover:text-white/80"
+                      ? "bg-plate-red/10 text-white"
+                      : "text-brushed-aluminum hover:bg-white/[0.05] hover:text-white/80"
                   }`}
                 >
                   <span
-                    className="h-4 w-4 flex-shrink-0 rounded-full border border-white/20"
+                    className="h-4 w-4 flex-shrink-0 rounded-full border border-brushed-aluminum/30"
                     style={{ backgroundColor: c.hex }}
                   />
                   <span className="truncate text-xs font-medium">{shortName(c.name)}</span>
@@ -253,7 +267,7 @@ export default function TruckGuyColorSelector({
 
           {/* Background Color */}
           <div className="flex flex-col">
-            <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+            <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
               Base
             </div>
             <div className="grid grid-cols-2 gap-1.5">
@@ -262,15 +276,15 @@ export default function TruckGuyColorSelector({
                   key={c.id}
                   type="button"
                   onClick={() => setBgColor(c)}
-                  title={c.name}
-                  className={`flex items-center gap-1.5 rounded-lg px-1.5 py-1.5 text-left transition ${
+                  title={properCase(c.name)}
+                  className={`flex items-center gap-1.5 rounded-sm px-1.5 py-1.5 text-left transition ${
                     bgColor?.id === c.id
-                      ? "bg-white/[0.10] text-white"
-                      : "text-white/50 hover:bg-white/[0.05] hover:text-white/80"
+                      ? "bg-plate-red/10 text-white"
+                      : "text-brushed-aluminum hover:bg-white/[0.05] hover:text-white/80"
                   }`}
                 >
                   <span
-                    className="h-4 w-4 flex-shrink-0 rounded-full border border-white/20"
+                    className="h-4 w-4 flex-shrink-0 rounded-full border border-brushed-aluminum/30"
                     style={{ backgroundColor: c.hex }}
                   />
                   <span className="truncate text-xs font-medium">{shortName(c.name)}</span>
@@ -283,19 +297,19 @@ export default function TruckGuyColorSelector({
 
         {/* Quantity + Add to Cart */}
         <div className="flex items-center gap-3 pt-1">
-          <div className="flex items-center rounded-full border border-white/10 bg-white/[0.04]">
+          <div className="flex items-center rounded-sm border border-brushed-aluminum/25 bg-steel-panel">
             <button
               type="button"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
+              className="flex h-10 w-10 items-center justify-center text-brushed-aluminum transition hover:text-white"
             >
               −
             </button>
-            <span className="w-8 text-center text-sm font-black">{qty}</span>
+            <span className="w-8 text-center font-mono text-sm text-white">{qty}</span>
             <button
               type="button"
               onClick={() => setQty((q) => Math.min(20, q + 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
+              className="flex h-10 w-10 items-center justify-center text-brushed-aluminum transition hover:text-white"
             >
               +
             </button>
@@ -305,10 +319,10 @@ export default function TruckGuyColorSelector({
             type="button"
             onClick={handleAdd}
             disabled={!canAdd || added}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-sm px-8 py-4 font-display text-base uppercase tracking-wide transition active:scale-[0.98] disabled:opacity-50 ${
               added
-                ? "bg-emerald-500 text-white"
-                : "bg-white text-black hover:bg-zinc-200"
+                ? "bg-emerald-600 text-white"
+                : "bg-plate-red text-white hover:bg-plate-red/85"
             }`}
           >
             {added ? (

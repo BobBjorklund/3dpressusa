@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-const BASE = "w-fit rounded-full border border-white/10 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-white/70 backdrop-blur-sm";
+const BASE = "inline-flex w-fit items-center rounded-sm border border-hazard-yellow/40 bg-hazard-yellow/10 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.25em] text-hazard-yellow";
 
 export default function EyebrowBadge({
   children,
@@ -14,7 +14,7 @@ export default function EyebrowBadge({
 }) {
   const cls = `${BASE} ${className ?? ""}`.trim();
   return href ? (
-    <Link href={href} className={`${cls} transition hover:text-white`}>
+    <Link href={href} className={`${cls} transition hover:bg-hazard-yellow/20`}>
       {children}
     </Link>
   ) : (

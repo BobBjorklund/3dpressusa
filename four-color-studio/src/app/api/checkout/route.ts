@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { calculateCart } from '@/lib/storefront/pricing';
 import type { CartItem } from '@/lib/storefront/pricing-config';
+import { orderWeightG, groundAdvantageCents, FREE_SHIPPING_THRESHOLD } from '@/lib/storefront/shipping';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
@@ -11,39 +12,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 // a Stripe Checkout Session. Stripe redirects the customer to `url` to pay;
 // once paid, Stripe calls /api/webhook (webhook/route.ts) to actually
 // fulfill the order (send emails) — this route never sends anything itself.
-
-// Unit weights in grams
-// coaster: per 4-pack — rough estimate pending a real scale reading, revisit before high-volume shipping
-const WEIGHT_G = { cap: 33, cover: 112, coaster: 160 } as const; // cover = base(77) + sock(30) + clip(5)
-const PACKAGING_G = 40; // bubble mailer
-
-function orderWeightG(items: CartItem[]): number {
-  const itemWeight = items.reduce((sum, item) => {
-    const unit = WEIGHT_G[item.type as keyof typeof WEIGHT_G] ?? WEIGHT_G.cap;
-    return sum + unit * item.quantity;
-  }, 0);
-  return itemWeight + PACKAGING_G;
-}
-
-// USPS Ground Advantage via Pirateship — conservative rates, never lose money.
-// Tweak at: pirateship.com/rate-calculator
-function groundAdvantageCents(weightG: number): number {
-  const oz = weightG / 28.3495;
-  if (oz <=  4) return 450;
-  if (oz <=  8) return 500;
-  if (oz <= 12) return 550;
-  if (oz <= 16) return 600;
-  // Over 1 lb
-  const lbs = Math.ceil(weightG / 453.592);
-  if (lbs <= 2) return 800;
-  if (lbs <= 3) return 950;
-  if (lbs <= 5) return 1100;
-  return 1100 + (lbs - 5) * 150;
-}
-
-// Priority Mail small flat rate box — fits any order at this size/weight
-const PRIORITY_CENTS = 1040;
-const FREE_SHIPPING_THRESHOLD = 50; // dollars
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -110,17 +78,6 @@ export async function POST(req: NextRequest) {
             },
           },
         },
-    {
-      shipping_rate_data: {
-        type: FIXED,
-        fixed_amount: { amount: PRIORITY_CENTS, currency: 'usd' },
-        display_name: 'Expedited (USPS Priority Mail)',
-        delivery_estimate: {
-          minimum: { unit: DAY, value: 2 },
-          maximum: { unit: DAY, value: 3 },
-        },
-      },
-    },
   ];
 
   const session = await stripe.checkout.sessions.create({

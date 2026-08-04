@@ -8,7 +8,7 @@ export default function ContentCard({
   className?: string;
 }) {
   return (
-    <div className={`rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm ${className ?? ""}`}>
+    <div className={`rounded-md border border-brushed-aluminum/25 bg-steel-panel p-5 ${className ?? ""}`}>
       {children}
     </div>
   );

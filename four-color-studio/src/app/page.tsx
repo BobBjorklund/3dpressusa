@@ -2,6 +2,7 @@ import Link from "next/link";
 import HomeCarousel, { CarouselSlide } from "@/components/HomeCarousel";
 import { getCollections, getItemsBySlugs, collectionCarouselBg, collectionProductImg, itemHeroImg, formatTiers } from "@/lib/storefront/collections";
 import BestSellersSidebar, { type BestSellerItem } from "@/components/BestSellersSidebar";
+import SpecPlate from "@/components/SpecPlate";
 
 const BEST_SELLER_SLUGS = [
   "patriot-rwb-eagle",
@@ -17,7 +18,7 @@ const INTRO_SLIDES: CarouselSlide[] = [
     id: "main-cover",
     eyebrow: "The System",
     title: "Buy the base once. Swap the look whenever the mood hits.",
-    body: "Our modular hitch cover keeps the receiver-mounted hardware on your truck for good. The placard up front? That's the fun part — change it as often as your team's winning streak.",
+    body: "Our modular hitch cover keeps the receiver-mounted hardware on your truck for good. The placard up front? That's the fun part - change it as often as your team's winning streak.",
     ctaLabel: "Shop Collections",
     ctaHref: "/collections",
     priceLine: "Full set: $20 · Base unit: $10 · Cap: $10",
@@ -27,7 +28,7 @@ const INTRO_SLIDES: CarouselSlide[] = [
     id: "base-unit",
     eyebrow: "The Hardware",
     title: "The piece that stays on forever.",
-    body: "Receiver-mounted base with a PETG retaining clip. Installs once, stays put, and never asks you to replace it — just the cap up front.",
+    body: "Receiver-mounted base with a PETG retaining clip. Installs once, stays put, and never asks you to replace it - just the cap up front.",
     ctaLabel: "Get the Base Unit",
     ctaHref: "/base-unit",
     priceLine: "$10 standalone · $9 with a standard cap · $8 with hero or patriotic caps",
@@ -39,7 +40,7 @@ const INTRO_SLIDES: CarouselSlide[] = [
     id: "main-pricing",
     eyebrow: "Quantity Pricing",
     title: "The more looks you grab, the less each one runs.",
-    body: "Pick anything from any collection. Pricing tiers are based on your total quantity — mix and match freely. Stack the savings without touching a coupon code.",
+    body: "Pick anything from any collection. Pricing tiers are based on your total quantity - mix and match freely. Stack the savings without touching a coupon code.",
     ctaLabel: "Browse Collections",
     ctaHref: "/collections",
     priceLine: "1 cap: $10 · 3 caps: $9 · 5+ caps: $8",
@@ -62,50 +63,42 @@ const OUTRO_SLIDES: CarouselSlide[] = [
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
 
-function GlobalBackdrop() {
-  return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-      <div className="absolute inset-0 bg-zinc-950" />
-      <img
-        src="/brand/3dpress-usa-badge-clean.png"
-        alt=""
-        className="fixed left-1/2 top-1/2 h-[900px] w-[900px] -translate-x-1/2 -translate-y-1/2 opacity-[0.07] md:h-[1100px] md:w-[1100px]"
-      />
-      <div className="absolute inset-0 opacity-[0.22]">
-        <div className="absolute -left-16 top-8 h-64 w-64 rotate-[-12deg] rounded-[2rem] border border-red-400/20 bg-gradient-to-br from-red-500/30 to-transparent shadow-[0_0_60px_rgba(239,68,68,0.20)]" />
-        <div className="absolute left-[16%] top-28 h-56 w-56 rotate-[8deg] rounded-[2rem] border border-blue-400/20 bg-gradient-to-br from-blue-500/25 to-transparent shadow-[0_0_60px_rgba(59,130,246,0.18)]" />
-        <div className="absolute left-[34%] top-10 h-60 w-60 rotate-[14deg] rounded-[2rem] border border-orange-300/20 bg-gradient-to-br from-amber-400/25 to-transparent shadow-[0_0_60px_rgba(251,191,36,0.16)]" />
-        <div className="absolute right-[28%] top-24 h-52 w-52 rotate-[-10deg] rounded-[2rem] border border-green-400/20 bg-gradient-to-br from-emerald-500/25 to-transparent shadow-[0_0_60px_rgba(16,185,129,0.14)]" />
-        <div className="absolute right-16 top-12 h-64 w-64 rotate-[10deg] rounded-[2rem] border border-red-300/20 bg-gradient-to-br from-rose-400/20 to-transparent shadow-[0_0_60px_rgba(251,113,133,0.14)]" />
-      </div>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.16),transparent_22%),radial-gradient(circle_at_top_right,rgba(59,130,246,0.14),transparent_24%),radial-gradient(circle_at_50%_35%,rgba(245,158,11,0.12),transparent_20%),radial-gradient(circle_at_25%_70%,rgba(16,185,129,0.10),transparent_18%),radial-gradient(circle_at_80%_75%,rgba(236,72,153,0.08),transparent_20%)]" />
-      <div className="absolute inset-0 opacity-[0.12] [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:36px_36px]" />
-    </div>
-  );
-}
-
-function SectionGlow({
-  className = "",
-  color = "from-red-500/14 via-orange-400/10 to-transparent",
+function FeatureCard({
+  eyebrow,
+  title,
+  body,
+  accent,
 }: {
-  className?: string;
-  color?: string;
+  eyebrow: string;
+  title: string;
+  body: string;
+  accent: "red" | "blue" | "yellow";
 }) {
   return (
-    <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`} aria-hidden="true">
-      <div className={`absolute -left-24 top-0 h-72 w-72 rounded-full bg-gradient-to-br blur-3xl ${color}`} />
-      <div className="absolute right-0 top-1/3 h-56 w-56 rounded-full bg-fuchsia-400/10 blur-3xl" />
-      <div className="absolute left-1/3 bottom-0 h-40 w-40 rounded-full bg-sky-400/10 blur-3xl" />
-    </div>
+    <SpecPlate accent={accent} className="p-6">
+      <div className="font-mono text-[11px] uppercase tracking-[0.25em] text-brushed-aluminum">{eyebrow}</div>
+      <h2 className="mt-3 font-display text-2xl uppercase leading-tight tracking-tight text-white">{title}</h2>
+      <p className="mt-3 leading-6 text-brushed-aluminum">{body}</p>
+    </SpecPlate>
   );
 }
 
-function FeatureCard({ eyebrow, title, body, tintClass }: { eyebrow: string; title: string; body: string; tintClass: string }) {
+function ExplodedDiagram() {
   return (
-    <div className={`rounded-[1.75rem] border border-white/10 p-6 shadow-[0_10px_30px_rgba(0,0,0,0.18)] backdrop-blur-sm transition hover:border-white/15 ${tintClass}`}>
-      <div className="text-xs font-black uppercase tracking-[0.2em] text-white/60">{eyebrow}</div>
-      <h2 className="mt-3 text-2xl font-black leading-tight">{title}</h2>
-      <p className="mt-3 text-zinc-200/90">{body}</p>
+    <div className="relative flex flex-col items-center gap-4 py-4">
+      <SpecPlate accent="blue" className="w-full max-w-[260px] px-5 py-4 text-center">
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-federal-blue">Part 01 - Permanent</div>
+        <div className="mt-1 font-display text-xl uppercase text-white">Base Unit</div>
+        <div className="mt-1 text-xs text-brushed-aluminum">Receiver-mounted</div>
+      </SpecPlate>
+      <svg width="2" height="28" aria-hidden="true">
+        <line x1="1" y1="0" x2="1" y2="28" stroke="var(--color-brushed-aluminum)" strokeOpacity="0.4" strokeDasharray="3 3" />
+      </svg>
+      <SpecPlate accent="red" className="w-full max-w-[260px] px-5 py-4 text-center">
+        <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-plate-red">Part 02 - Swappable</div>
+        <div className="mt-1 font-display text-xl uppercase text-white">Placard Cap</div>
+        <div className="mt-1 text-xs text-brushed-aluminum">Change it with the season</div>
+      </SpecPlate>
     </div>
   );
 }
@@ -147,128 +140,130 @@ export default async function HomePage() {
   const slides = [...INTRO_SLIDES, ...collectionSlides, ...OUTRO_SLIDES];
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-zinc-950 text-white">
-      <GlobalBackdrop />
-
+    <main className="relative min-h-screen bg-gunmetal text-white">
       <BestSellersSidebar items={bestSellers} />
 
-      <section className="relative border-b border-white/10 overflow-hidden">
-        <SectionGlow />
-        <div className="relative mx-auto max-w-7xl px-6 py-6 md:px-8 md:py-8">
-          <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-            <div className="max-w-4xl">
-              <div className="text-[11px] font-black uppercase tracking-[0.3em] text-red-300">
-                3D Press, USA • East Windsor, NJ
+      <div className="flex flex-col gap-6 py-6 md:gap-8 md:py-8">
+
+      {/* Hero — the thesis: one part stays, one part swaps */}
+      <section className="relative">
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
+            <div>
+              <div className="font-mono text-xs uppercase tracking-[0.3em] text-brushed-aluminum">
+                3D Press, USA - Est. East Windsor, NJ
               </div>
-              <h1 className="mt-3 max-w-4xl text-3xl font-black tracking-tight text-white md:text-4xl lg:text-4xl">
-                Your hitch cover is embarrassing you. We fixed that.
+              <h1 className="mt-4 font-display text-3xl uppercase leading-[0.95] tracking-tight text-white md:text-4xl lg:text-5xl">
+                Your hitch cover is embarrassing you.
               </h1>
-              <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-200 md:text-base">
-                3D-printed right here in New Jersey. Our modular system keeps the base on your truck and lets you swap the placard whenever the mood changes — new season, new look, no problem. Built tough. Priced right. Made in America.
+              <p className="mt-2 font-display text-2xl uppercase tracking-tight text-plate-red md:text-3xl">
+                We fixed that.
               </p>
+              <p className="mt-4 max-w-xl leading-7 text-brushed-aluminum">
+                3D-printed right here in New Jersey. Our modular system keeps the base on your truck and lets you swap the placard whenever the mood changes - new season, new look, no problem. Built tough. Priced right. Made in America.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Link
+                  href="/collections"
+                  className="rounded-sm bg-plate-red px-6 py-3 font-display text-sm uppercase tracking-wide text-white transition hover:bg-plate-red/85"
+                >
+                  Shop Collections
+                </Link>
+                <Link
+                  href="/base-unit"
+                  className="rounded-sm border border-brushed-aluminum/40 px-6 py-3 font-display text-sm uppercase tracking-wide text-white transition hover:border-brushed-aluminum"
+                >
+                  Get the Base Unit
+                </Link>
+              </div>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1 lg:self-end">
-              {[
-                { text: "Swap the look. Keep the hardware.", cls: "border-red-400/20 bg-red-500/15 text-red-50" },
-                { text: "Printed in New Jersey. Tough enough to say so.", cls: "border-blue-400/20 bg-blue-500/15 text-blue-50" },
-                { text: "PETG retaining clip keeps it locked in tight.", cls: "border-amber-300/20 bg-amber-500/15 text-amber-50" },
-              ].map((item) => (
-                <div key={item.text} className={`rounded-2xl border p-4 text-sm font-semibold shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-sm ${item.cls}`}>
-                  {item.text}
-                </div>
-              ))}
-            </div>
+            <ExplodedDiagram />
           </div>
         </div>
       </section>
 
-      <section className="relative border-b border-white/10 overflow-hidden">
-        <SectionGlow color="from-amber-400/14 via-orange-400/8 to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 py-10 md:px-8">
-          <div className="flex flex-col items-start gap-4 rounded-[1.75rem] border border-amber-300/20 bg-amber-400/10 p-6 sm:flex-row sm:items-center sm:justify-between md:p-8">
+      {/* Carousel */}
+      <section>
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <HomeCarousel slides={slides} />
+        </div>
+      </section>
+
+      {/* No-hitch / coaster promo */}
+      <section>
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <SpecPlate accent="yellow" className="flex flex-col items-start gap-4 p-5 sm:flex-row sm:items-center sm:justify-between md:p-6">
             <div>
-              <div className="text-xs font-black uppercase tracking-[0.25em] text-amber-300">No Hitch? No Problem.</div>
-              <h2 className="mt-2 text-2xl font-black leading-tight md:text-3xl">
-                Don&apos;t have a hitch but still have American pride?
+              <h2 className="font-display text-2xl uppercase leading-tight text-white md:text-3xl">
+                Don&apos;t have a hitch but still have American pride? No problem.
               </h2>
-              <p className="mt-3 max-w-2xl text-zinc-200/90">
-                Every single design on this site — every branch, every holiday, every one-off — is also available as a coaster set. No truck required.
+              <p className="mt-3 max-w-2xl text-brushed-aluminum">
+                Every single design on this site - every branch, every holiday, every one-off - is also available as a coaster set. No truck required.
                 Hero &amp; Patriot: 4 for $20. Everything else: 4 for $25.
               </p>
             </div>
             <Link
               href="/collections"
-              className="flex-shrink-0 rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-zinc-200"
+              className="flex-shrink-0 rounded-sm bg-white px-6 py-3 font-display text-sm uppercase tracking-wide text-gunmetal transition hover:bg-brushed-aluminum"
             >
               Browse Designs →
             </Link>
-          </div>
+          </SpecPlate>
         </div>
       </section>
 
-      <section className="relative border-b border-white/10 overflow-hidden">
-        <SectionGlow color="from-blue-500/14 via-red-400/10 to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 py-8 md:px-8 md:py-10">
-          <HomeCarousel slides={slides} />
-        </div>
-      </section>
-
-      <section className="relative border-b border-white/10 overflow-hidden">
-        <SectionGlow color="from-orange-400/12 via-emerald-400/8 to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 py-12 md:px-8">
+      {/* Feature grid */}
+      <section>
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
           <div className="grid gap-6 md:grid-cols-3">
             <FeatureCard
+              accent="red"
               eyebrow="Better by design"
               title="Not the junk you've seen before"
-              body="Most hitch covers are one-piece throwaways from overseas. Ours is a modular system — keep the good hardware, swap the placard when you want something fresh. Your wallet will notice."
-              tintClass="bg-gradient-to-br from-red-500/14 via-white/[0.06] to-white/[0.03]"
+              body="Most hitch covers are one-piece throwaways from overseas. Ours is a modular system - keep the good hardware, swap the placard when you want something fresh. Your wallet will notice."
             />
             <FeatureCard
+              accent="blue"
               eyebrow="Built for the real world"
               title="Weather's got nothing on this"
-              body="UV, rain, road grime, the neighbor's opinion — our covers handle it all. High-quality materials, tight fit, and easy replacement that won't make you regret buying American."
-              tintClass="bg-gradient-to-br from-blue-500/14 via-white/[0.06] to-white/[0.03]"
+              body="UV, rain, road grime, the neighbor's opinion - our covers handle it all. High-quality materials, tight fit, and easy replacement that won't make you regret buying American."
             />
             <FeatureCard
+              accent="yellow"
               eyebrow="The hardware"
               title="One base. Infinite looks."
-              body="Receiver-mounted base with a PETG retaining clip. Installs once. Stays forever. Swap caps anytime — $10 standalone, $9 with a standard cap, $8 with hero or patriotic caps."
-              tintClass="bg-gradient-to-br from-amber-400/16 via-white/[0.06] to-white/[0.03]"
+              body="Receiver-mounted base with a PETG retaining clip. Installs once. Stays forever. Swap caps anytime - $10 standalone, $9 with a standard cap, $8 with hero or patriotic caps."
             />
           </div>
         </div>
       </section>
 
-      <section className="relative overflow-hidden">
-        <SectionGlow color="from-orange-500/18 via-red-400/8 to-transparent" />
-        <div className="relative mx-auto max-w-7xl px-6 py-12 md:px-8">
-          <div className="relative overflow-hidden rounded-[2rem] border border-orange-400/20 bg-[linear-gradient(135deg,rgba(146,64,14,0.28),rgba(120,53,15,0.22),rgba(67,20,7,0.48))] backdrop-blur-sm p-8 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.18),transparent_28%)]" />
-            <div className="absolute inset-y-0 right-0 w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.04))]" />
-            <div className="absolute -bottom-12 left-10 h-36 w-36 rounded-full bg-red-500/10 blur-3xl" />
-            <div className="absolute -top-10 right-20 h-40 w-40 rounded-full bg-amber-400/10 blur-3xl" />
-            <div className="relative">
-              <div className="text-xs font-black uppercase tracking-[0.25em] text-orange-300">Custom Work</div>
-              <h2 className="mt-3 text-3xl font-black tracking-tight">Got an idea that doesn&apos;t fit in a square?</h2>
-              <p className="mt-4 max-w-3xl text-lg leading-8 text-orange-50/90">
-                Good news — we&apos;re not square. We can print custom shapes, sizes, and designs. Round, oval, state-shaped, your company logo, your kid&apos;s drawing from the fridge — if it fits on a hitch, we want to hear about it. Drop us an email and let&apos;s talk.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  href="mailto:designs@3dpressusa.com"
-                  className="rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-zinc-200"
-                >
-                  designs@3dpressusa.com
-                </Link>
-                <div className="rounded-full border border-orange-300/25 bg-orange-400/15 px-4 py-3 text-sm font-bold text-orange-50">
-                  Any shape · Any design · Standard pricing
-                </div>
+      {/* Custom work CTA */}
+      <section>
+        <div className="mx-auto max-w-7xl px-6 md:px-8">
+          <SpecPlate accent="red" className="p-8">
+            <div className="font-mono text-xs uppercase tracking-[0.25em] text-plate-red">Custom Work</div>
+            <h2 className="mt-3 font-display text-3xl uppercase tracking-tight text-white">Got an idea that doesn&apos;t fit in a square?</h2>
+            <p className="mt-4 max-w-3xl text-lg leading-8 text-brushed-aluminum">
+              Good news - we&apos;re not square. We can print custom shapes, sizes, and designs. Round, oval, state-shaped, your company logo, your kid&apos;s drawing from the fridge - if it fits on a hitch, we want to hear about it. Drop us an email and let&apos;s talk.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="mailto:designs@3dpressusa.com"
+                className="rounded-sm bg-white px-6 py-3 font-display text-sm uppercase tracking-wide text-gunmetal transition hover:bg-brushed-aluminum"
+              >
+                designs@3dpressusa.com
+              </Link>
+              <div className="rounded-sm border border-plate-red/40 px-4 py-3 font-mono text-sm text-brushed-aluminum">
+                Any shape · Any design · Standard pricing
               </div>
             </div>
-          </div>
+          </SpecPlate>
         </div>
       </section>
+
+      </div>
     </main>
   );
 }

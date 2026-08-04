@@ -30,7 +30,7 @@ export default async function ItemPage({
   return (
     <main className="relative min-h-screen text-white">
 
-      <FixedPageBackground src={collectionCarouselBg(collection)} overlay="bg-zinc-950/80" />
+      <FixedPageBackground src={collectionCarouselBg(collection)} overlay="bg-gunmetal/85" />
 
       <div className="mx-auto max-w-7xl px-6 pt-8 md:px-8">
         <Breadcrumb crumbs={[
@@ -52,14 +52,14 @@ export default async function ItemPage({
             </EyebrowBadge>
 
             <div>
-              <h1 className="text-3xl font-black tracking-tight md:text-4xl">{item.name}</h1>
+              <h1 className="font-display text-4xl uppercase tracking-tight md:text-5xl">{item.name}</h1>
               {item.description && (
-                <p className="mt-3 text-lg leading-7 text-zinc-300">{item.description}</p>
+                <p className="mt-3 text-lg leading-7 text-brushed-aluminum">{item.description}</p>
               )}
             </div>
 
             {needsPixelationDisclaimer(item.slug) && (
-              <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm font-semibold leading-snug text-amber-200">
+              <div className="rounded-sm border border-hazard-yellow/30 bg-hazard-yellow/10 px-4 py-3 text-sm font-semibold leading-snug text-hazard-yellow">
                 {PIXELATION_DISCLAIMER_TEXT}
               </div>
             )}
@@ -78,11 +78,11 @@ export default async function ItemPage({
                   discountLabel: pct !== null ? `${pct}% off` : undefined,
                 };
               })}
-              note="Tier is based on total cap quantity across your entire order — mix any collections."
+              note="Tier is based on total cap quantity across your entire order - mix any collections."
             >
               {item.highDetailAvailable && (
-                <div className="mt-3 text-xs font-bold text-white/50">
-                  High-detail mode available <span className="text-amber-300">+$1 per cap</span>
+                <div className="mt-3 text-xs font-semibold text-brushed-aluminum">
+                  High-detail mode available <span className="text-hazard-yellow">+$1 per cap</span>
                 </div>
               )}
             </PricingTierCards>

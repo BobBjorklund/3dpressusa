@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <footer className="mt-auto border-t border-white/10 bg-zinc-950/80 backdrop-blur-md">
+    <footer className="mt-auto border-t border-brushed-aluminum/15 bg-gunmetal">
       <div className="mx-auto max-w-7xl px-6 py-10 md:px-8">
         <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4">
 
@@ -16,14 +16,14 @@ export default function Footer() {
                 width={64}
                 height={64}
               />
-              <div className="text-lg font-black tracking-tight">
+              <div className="font-display text-lg uppercase tracking-wide">
                 <span className="text-white">3DPress</span>
-                <span className="text-red-500">U</span>
+                <span className="text-plate-red">U</span>
                 <span className="text-white">S</span>
-                <span className="text-blue-500">A</span>
+                <span className="text-federal-blue">A</span>
               </div>
             </div>
-            <p className="mt-2 text-sm text-zinc-500 leading-6">
+            <p className="mt-2 text-sm leading-6 text-brushed-aluminum">
               Modular 3D-printed hitch covers.<br />
               Made to order in East Windsor, NJ.
             </p>
@@ -31,7 +31,7 @@ export default function Footer() {
 
           {/* Shop */}
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-3">Shop</div>
+            <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-brushed-aluminum">Shop</div>
             <ul className="space-y-2">
               {[
                 { label: "Collections", href: "/collections" },
@@ -39,7 +39,7 @@ export default function Footer() {
                 { label: "Custom Work", href: "mailto:designs@3dpressusa.com" },
               ].map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-sm text-zinc-400 transition hover:text-white">
+                  <Link href={l.href} className="text-sm text-white/70 transition hover:text-white">
                     {l.label}
                   </Link>
                 </li>
@@ -49,7 +49,7 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-3">Legal</div>
+            <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-brushed-aluminum">Legal</div>
             <ul className="space-y-2">
               {[
                 { label: "Privacy Policy", href: "/legal/privacy" },
@@ -57,7 +57,7 @@ export default function Footer() {
                 { label: "Shipping Policy", href: "/legal/shipping" },
               ].map((l) => (
                 <li key={l.href}>
-                  <Link href={l.href} className="text-sm text-zinc-400 transition hover:text-white">
+                  <Link href={l.href} className="text-sm text-white/70 transition hover:text-white">
                     {l.label}
                   </Link>
                 </li>
@@ -67,14 +67,14 @@ export default function Footer() {
 
           {/* Contact */}
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500 mb-3">Contact</div>
+            <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.2em] text-brushed-aluminum">Contact</div>
             <ul className="space-y-2">
               {[
                 { label: "info@3dpressusa.com", href: "mailto:info@3dpressusa.com" },
                 { label: "designs@3dpressusa.com", href: "mailto:designs@3dpressusa.com" },
               ].map((l) => (
                 <li key={l.href}>
-                  <a href={l.href} className="text-sm text-zinc-400 transition hover:text-white">
+                  <a href={l.href} className="text-sm text-white/70 transition hover:text-white">
                     {l.label}
                   </a>
                 </li>
@@ -83,11 +83,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-10 border-t border-white/10 pt-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-zinc-600">
+        <div className="mt-10 flex flex-col gap-1 border-t border-brushed-aluminum/15 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="font-mono text-xs text-brushed-aluminum/70">
             &copy; {new Date().getFullYear()} 3DPress USA. All rights reserved.
           </p>
-          <p className="text-xs text-zinc-600">
+          <p className="font-mono text-xs text-brushed-aluminum/70">
             Designed, printed, and shipped in the USA.
           </p>
         </div>

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import ContentCard from "./ContentCard";
+import SpecPlate from "./SpecPlate";
 
 export type PricingTier = { price: string; label: string; discountLabel?: string };
 
@@ -13,26 +13,26 @@ export default function PricingTierCards({
   children?: ReactNode;
 }) {
   return (
-    <ContentCard>
-      <div className="text-[10px] font-black uppercase tracking-[0.25em] text-white/50 mb-3">Pricing</div>
+    <SpecPlate accent="yellow" className="p-6">
+      <div className="mb-3 font-mono text-[10px] uppercase tracking-[0.25em] text-brushed-aluminum">Pricing</div>
       <div className="flex flex-wrap gap-3">
         {tiers.map((tier) => (
           <div
             key={tier.label}
-            className="rounded-2xl border border-amber-300/20 bg-amber-400/10 px-4 py-3 text-center"
+            className="rounded-sm border border-hazard-yellow/30 bg-hazard-yellow/10 px-4 py-3 text-center"
           >
-            <div className="text-xl font-black text-amber-200">{tier.price}</div>
-            <div className="text-[10px] font-bold text-white/50 mt-0.5">{tier.label}</div>
+            <div className="font-display text-xl uppercase text-hazard-yellow">{tier.price}</div>
+            <div className="mt-0.5 font-mono text-[10px] text-brushed-aluminum">{tier.label}</div>
             {tier.discountLabel && (
-              <div className="text-[10px] font-bold text-emerald-300 mt-0.5">{tier.discountLabel}</div>
+              <div className="mt-0.5 text-[10px] font-bold text-emerald-400">{tier.discountLabel}</div>
             )}
           </div>
         ))}
       </div>
       {note && (
-        <p className="mt-3 text-xs text-white/40 leading-5">{note}</p>
+        <p className="mt-3 text-xs leading-5 text-brushed-aluminum/70">{note}</p>
       )}
       {children}
-    </ContentCard>
+    </SpecPlate>
   );
 }

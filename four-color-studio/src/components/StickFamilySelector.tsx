@@ -159,9 +159,9 @@ function SlotPicker({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-zinc-800 p-4">
+    <div className="rounded-md border border-brushed-aluminum/25 bg-steel-panel p-4">
       {/* Line */}
-      <div className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+      <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
         Family Line
       </div>
       <div className="mb-4 grid grid-cols-3 gap-1.5 sm:grid-cols-4">
@@ -170,10 +170,10 @@ function SlotPicker({
             key={line.id}
             type="button"
             onClick={() => onChange({ ...slot, line: line.id })}
-            className={`rounded-lg border px-2 py-1.5 text-xs font-bold transition ${
+            className={`rounded-sm border px-2 py-1.5 text-xs font-semibold transition ${
               slot.line === line.id
-                ? "border-white/40 bg-white/[0.12] text-white"
-                : "border-white/10 bg-white/[0.03] text-white/50 hover:text-white/80"
+                ? "border-plate-red/50 bg-plate-red/10 text-white"
+                : "border-brushed-aluminum/20 bg-white/[0.03] text-brushed-aluminum hover:text-white/80"
             }`}
           >
             {line.label}
@@ -182,7 +182,7 @@ function SlotPicker({
       </div>
 
       {/* Variant */}
-      <div className="mb-3 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+      <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
         Member
       </div>
       <div className="mb-4 grid grid-cols-3 gap-1.5">
@@ -191,10 +191,10 @@ function SlotPicker({
             key={v.id}
             type="button"
             onClick={() => onChange({ ...slot, variant: v.id })}
-            className={`rounded-lg border px-2 py-1.5 text-xs font-bold transition ${
+            className={`rounded-sm border px-2 py-1.5 text-xs font-semibold transition ${
               slot.variant === v.id
-                ? "border-white/40 bg-white/[0.12] text-white"
-                : "border-white/10 bg-white/[0.03] text-white/50 hover:text-white/80"
+                ? "border-plate-red/50 bg-plate-red/10 text-white"
+                : "border-brushed-aluminum/20 bg-white/[0.03] text-brushed-aluminum hover:text-white/80"
             }`}
           >
             {v.label}
@@ -207,28 +207,28 @@ function SlotPicker({
         <button
           type="button"
           onClick={() => onChange({ ...slot, halo: !slot.halo })}
-          className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-black transition ${
+          className={`flex items-center gap-2 rounded-sm border px-3 py-1.5 text-xs font-semibold transition ${
             slot.halo
-              ? "border-amber-300/40 bg-amber-400/20 text-amber-200"
-              : "border-white/10 bg-white/[0.04] text-white/50 hover:text-white/80"
+              ? "border-hazard-yellow/40 bg-hazard-yellow/15 text-hazard-yellow"
+              : "border-brushed-aluminum/20 bg-white/[0.04] text-brushed-aluminum hover:text-white/80"
           }`}
         >
           <span>☁</span>
-          {slot.halo ? "Halo — in memoriam" : "Add halo"}
+          {slot.halo ? "Halo - in memoriam" : "Add halo"}
         </button>
 
         <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onRemove}
-            className="text-xs text-red-400/70 transition hover:text-red-400"
+            className="text-xs text-plate-red/70 transition hover:text-plate-red"
           >
             Remove
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/[0.06] px-3 py-1.5 text-xs font-bold text-white/60 transition hover:text-white"
+            className="rounded-sm border border-brushed-aluminum/25 bg-white/[0.06] px-3 py-1.5 text-xs font-semibold text-brushed-aluminum transition hover:text-white"
           >
             Done
           </button>
@@ -263,15 +263,15 @@ function SlotStrip({
             key={i}
             type="button"
             onClick={() => onSelect(i)}
-            className={`relative flex flex-col items-center justify-end rounded-xl border px-2 pb-1 pt-3 transition ${
+            className={`relative flex flex-col items-center justify-end rounded-sm border px-2 pb-1 pt-3 transition ${
               activeIdx === i
-                ? "border-white/40 bg-white/[0.10]"
-                : "border-white/10 bg-white/[0.04] hover:border-white/20"
+                ? "border-plate-red/50 bg-plate-red/10"
+                : "border-brushed-aluminum/20 bg-white/[0.04] hover:border-brushed-aluminum/40"
             }`}
             style={{ height: THUMB_H + 20 }}
           >
             {slot.halo && (
-              <span className="absolute top-1 text-[9px] leading-none text-amber-300">☁</span>
+              <span className="absolute top-1 text-[9px] leading-none text-hazard-yellow">☁</span>
             )}
             <img
               src={svgUrl(slot.line, slot.variant)}
@@ -287,7 +287,7 @@ function SlotStrip({
         <button
           type="button"
           onClick={onAdd}
-          className="flex h-16 w-10 items-center justify-center rounded-xl border border-dashed border-white/20 text-white/30 transition hover:border-white/40 hover:text-white/60"
+          className="flex h-16 w-10 items-center justify-center rounded-sm border border-dashed border-brushed-aluminum/30 text-brushed-aluminum/50 transition hover:border-brushed-aluminum/60 hover:text-brushed-aluminum"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
@@ -308,7 +308,7 @@ function describeName(slots: SlotConfig[]): string {
     .filter((v) => counts[v.id])
     .map((v) => `${counts[v.id]}× ${v.label.replace(/[♂♀]/g, "").trim()}`);
 
-  return `Stick Family — ${parts.join(", ")}`;
+  return `Stick Family - ${parts.join(", ")}`;
 }
 
 function encodeSlots(slots: SlotConfig[]): string {
@@ -371,12 +371,12 @@ export default function StickFamilySelector() {
 
       {/* LEFT — live preview */}
       <div className="flex flex-col gap-3">
-        <div className="text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+        <div className="font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
           Preview
         </div>
         <FamilyPreview slots={slots} />
-        <p className="text-xs text-zinc-600">
-          Approximate preview — final print uses the actual line assets at 0.2 mm/pixel.
+        <p className="text-xs text-brushed-aluminum/60">
+          Approximate preview - final print uses the actual line assets at 0.2 mm/pixel.
         </p>
       </div>
 
@@ -385,7 +385,7 @@ export default function StickFamilySelector() {
 
         {/* Slot strip */}
         <div>
-          <div className="mb-2 text-[11px] font-black uppercase tracking-[0.2em] text-zinc-500">
+          <div className="mb-2 font-mono text-[11px] uppercase tracking-[0.2em] text-brushed-aluminum">
             Your Family ({slots.length}/{MAX_SLOTS})
           </div>
           <SlotStrip
@@ -408,19 +408,19 @@ export default function StickFamilySelector() {
 
         {/* Qty + Add to Cart */}
         <div className="flex items-center gap-3 pt-1">
-          <div className="flex items-center rounded-full border border-white/10 bg-white/[0.04]">
+          <div className="flex items-center rounded-sm border border-brushed-aluminum/25 bg-steel-panel">
             <button
               type="button"
               onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
+              className="flex h-10 w-10 items-center justify-center text-brushed-aluminum transition hover:text-white"
             >
               −
             </button>
-            <span className="w-8 text-center text-sm font-black">{qty}</span>
+            <span className="w-8 text-center font-mono text-sm text-white">{qty}</span>
             <button
               type="button"
               onClick={() => setQty((q) => Math.min(20, q + 1))}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-white/60 transition hover:text-white"
+              className="flex h-10 w-10 items-center justify-center text-brushed-aluminum transition hover:text-white"
             >
               +
             </button>
@@ -430,8 +430,8 @@ export default function StickFamilySelector() {
             type="button"
             onClick={handleAddToCart}
             disabled={slots.length === 0 || added}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
-              added ? "bg-emerald-500 text-white" : "bg-white text-black hover:bg-zinc-200"
+            className={`flex flex-1 items-center justify-center gap-2 rounded-sm px-8 py-4 font-display text-base uppercase tracking-wide transition active:scale-[0.98] disabled:opacity-50 ${
+              added ? "bg-emerald-600 text-white" : "bg-plate-red text-white hover:bg-plate-red/85"
             }`}
           >
             {added ? (

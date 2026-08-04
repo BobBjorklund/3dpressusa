@@ -15,13 +15,13 @@ function CartButton({ onClick, itemCount, className }: { onClick: () => void; it
       type="button"
       onClick={onClick}
       aria-label="Open cart"
-      className={`relative flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white transition hover:bg-white/[0.12] ${className ?? ""}`}
+      className={`relative flex h-9 w-9 items-center justify-center rounded-sm border border-brushed-aluminum/25 bg-steel-panel text-white transition hover:border-brushed-aluminum/50 ${className ?? ""}`}
     >
       <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2 9m12-9l2 9M9 21a1 1 0 100-2 1 1 0 000 2zm10 0a1 1 0 100-2 1 1 0 000 2z" />
       </svg>
       {itemCount > 0 && (
-        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white">
+        <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-plate-red font-mono text-[10px] font-bold text-white">
           {itemCount > 9 ? "9+" : itemCount}
         </span>
       )}
@@ -58,7 +58,7 @@ export default function NavBar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 bg-zinc-950/75 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-brushed-aluminum/20 bg-gunmetal/90 backdrop-blur-sm">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-8">
 
         {/* Logo */}
@@ -70,11 +70,11 @@ export default function NavBar({
             width={128}
             height={128}
           />
-          <span className="text-lg font-black tracking-tight">
+          <span className="font-display text-xl uppercase tracking-wide">
             <span className="text-white">3DPress</span>
-            <span className="text-red-500">U</span>
+            <span className="text-plate-red">U</span>
             <span className="text-white">S</span>
-            <span className="text-blue-500">A</span>
+            <span className="text-federal-blue">A</span>
           </span>
         </Link>
 
@@ -89,7 +89,7 @@ export default function NavBar({
             >
               <button
                 onClick={() => setSaleOpen((v) => !v)}
-                className="flex items-center gap-1 rounded-full border border-amber-400/30 bg-amber-400/10 px-4 py-2 text-sm font-black text-amber-300 transition hover:bg-amber-400/20"
+                className="flex items-center gap-1 rounded-sm border border-hazard-yellow/40 bg-hazard-yellow/10 px-4 py-2 font-display text-sm uppercase tracking-wide text-hazard-yellow transition hover:bg-hazard-yellow/20"
               >
                 Sale
                 <svg className={`h-3 w-3 transition-transform duration-200 ${saleOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -102,13 +102,13 @@ export default function NavBar({
                   saleOpen ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1"
                 }`}
               >
-                <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_16px_48px_rgba(0,0,0,0.40)]">
+                <div className="overflow-hidden rounded-sm border border-brushed-aluminum/25 bg-steel-panel">
                 {saleCollections.map((c) => (
                   <Link
                     key={c.slug}
                     href={`/collections/${c.slug}`}
                     onClick={() => setSaleOpen(false)}
-                    className="block px-4 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07] hover:text-white"
+                    className="block px-4 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.06] hover:text-white"
                   >
                     {c.name}
                   </Link>
@@ -126,7 +126,7 @@ export default function NavBar({
           >
             <button
               onClick={() => setCollectionsOpen((v) => !v)}
-              className="flex items-center gap-1 rounded-full px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white"
+              className="flex items-center gap-1 rounded-sm px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.06] hover:text-white"
             >
               Collections
               <svg className={`h-3 w-3 transition-transform duration-200 ${collectionsOpen ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
@@ -139,11 +139,11 @@ export default function NavBar({
                 collectionsOpen ? "pointer-events-auto opacity-100 translate-y-0" : "pointer-events-none opacity-0 -translate-y-1"
               }`}
             >
-              <div className="overflow-hidden rounded-2xl border border-white/10 bg-zinc-900 shadow-[0_16px_48px_rgba(0,0,0,0.40)]">
+              <div className="overflow-hidden rounded-sm border border-brushed-aluminum/25 bg-steel-panel">
                 <Link
                   href="/collections"
                   onClick={() => setCollectionsOpen(false)}
-                  className="block border-b border-white/10 px-4 py-3 text-sm font-black text-white/90 transition hover:bg-white/[0.07]"
+                  className="block border-b border-brushed-aluminum/15 px-4 py-3 font-display text-sm uppercase tracking-wide text-white/90 transition hover:bg-white/[0.06]"
                 >
                   All Collections
                 </Link>
@@ -152,7 +152,7 @@ export default function NavBar({
                     key={c.slug}
                     href={`/collections/${c.slug}`}
                     onClick={() => setCollectionsOpen(false)}
-                    className="block px-4 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07] hover:text-white"
+                    className="block px-4 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.06] hover:text-white"
                   >
                     {c.name}
                   </Link>
@@ -171,7 +171,7 @@ export default function NavBar({
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
             onClick={() => setOpen((v) => !v)}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white transition hover:bg-white/[0.12]"
+            className="flex h-10 w-10 items-center justify-center rounded-sm border border-brushed-aluminum/25 bg-steel-panel text-white transition hover:border-brushed-aluminum/50"
           >
             <svg
               className="h-5 w-5 transition-transform duration-200"
@@ -197,10 +197,10 @@ export default function NavBar({
           open ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
         }`}
       >
-        <nav className="border-t border-white/10 bg-zinc-950 px-6 pb-6 pt-4">
+        <nav className="border-t border-brushed-aluminum/20 bg-gunmetal px-6 pb-6 pt-4">
           {saleCollections.length > 0 && (
             <>
-              <div className="mb-1 px-2 text-[10px] font-black uppercase tracking-[0.25em] text-amber-400">
+              <div className="mb-1 px-2 font-mono text-[10px] uppercase tracking-[0.25em] text-hazard-yellow">
                 Sale
               </div>
               {saleCollections.map((c) => (
@@ -208,22 +208,22 @@ export default function NavBar({
                   key={c.slug}
                   href={`/collections/${c.slug}`}
                   onClick={() => setOpen(false)}
-                  className="block rounded-xl px-3 py-3 text-sm font-semibold text-amber-200 transition hover:bg-white/[0.07]"
+                  className="block rounded-sm px-3 py-3 text-sm font-semibold text-hazard-yellow transition hover:bg-white/[0.06]"
                 >
                   {c.name}
                 </Link>
               ))}
-              <div className="my-3 border-t border-white/10" />
+              <div className="my-3 border-t border-brushed-aluminum/20" />
             </>
           )}
 
-          <div className="mb-1 px-2 text-[10px] font-black uppercase tracking-[0.25em] text-white/40">
+          <div className="mb-1 px-2 font-mono text-[10px] uppercase tracking-[0.25em] text-white/40">
             Collections
           </div>
           <Link
             href="/collections"
             onClick={() => setOpen(false)}
-            className="block rounded-xl px-3 py-3 text-sm font-black text-white/90 transition hover:bg-white/[0.07]"
+            className="block rounded-sm px-3 py-3 font-display text-sm uppercase tracking-wide text-white/90 transition hover:bg-white/[0.06]"
           >
             All Collections
           </Link>
@@ -232,7 +232,7 @@ export default function NavBar({
               key={c.slug}
               href={`/collections/${c.slug}`}
               onClick={() => setOpen(false)}
-              className="block rounded-xl px-3 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.07]"
+              className="block rounded-sm px-3 py-3 text-sm font-semibold text-white/80 transition hover:bg-white/[0.06]"
             >
               {c.name}
             </Link>

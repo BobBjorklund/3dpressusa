@@ -48,7 +48,7 @@ export default function GroupedItemAccordion({
         return (
           <div
             key={group.key}
-            className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-zinc-950/60 backdrop-blur-sm"
+            className="overflow-hidden rounded-md border border-brushed-aluminum/25 bg-gunmetal"
           >
             <button
               type="button"
@@ -56,13 +56,13 @@ export default function GroupedItemAccordion({
               className="flex w-full items-center justify-between px-6 py-4 text-left transition hover:bg-white/[0.04]"
             >
               <span className="flex items-center gap-3">
-                <span className="text-lg font-black tracking-tight">{group.label}</span>
-                <span className="rounded-full border border-white/10 bg-white/[0.06] px-2.5 py-0.5 text-xs font-bold text-white/50">
+                <span className="font-display text-lg uppercase tracking-tight text-white">{group.label}</span>
+                <span className="rounded-sm border border-brushed-aluminum/25 px-2.5 py-0.5 font-mono text-xs text-brushed-aluminum">
                   {group.items.length}
                 </span>
               </span>
               <svg
-                className={`h-4 w-4 flex-shrink-0 text-white/50 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
+                className={`h-4 w-4 flex-shrink-0 text-brushed-aluminum transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -79,11 +79,11 @@ export default function GroupedItemAccordion({
             >
               <div className="overflow-hidden">
                 {group.items.length === 0 && group.emptyMessage ? (
-                  <p className="border-t border-white/10 p-6 text-sm text-zinc-500">
+                  <p className="border-t border-brushed-aluminum/15 p-6 text-sm text-brushed-aluminum">
                     {group.emptyMessage}
                   </p>
                 ) : (
-                  <div className="grid gap-5 border-t border-white/10 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  <div className="grid gap-5 border-t border-brushed-aluminum/15 p-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                     {group.items.map((item, i) => (
                       <div
                         key={item.id}

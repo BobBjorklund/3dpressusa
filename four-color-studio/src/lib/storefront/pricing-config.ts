@@ -65,13 +65,28 @@ export function configTiersForDisplay(schemeName: string): { minQty: number; uni
   }));
 }
 
-// Renders configTiersForDisplay as a compact "5/$8 · 3/$9 · 1/$10" string.
-// Lives here (not in collections.ts) because collections.ts imports Prisma —
-// this needs to be safe to import from client components like ItemCard.
-export function formatTiers(schemeName: string): string {
+// Renders configTiersForDisplay as a compact "$10/ea · 3+ $9/ea · 5+ $8/ea"
+// string. Lives here (not in collections.ts) because collections.ts imports
+// Prisma — this needs to be safe to import from client components like ItemCard.
+export function formatCapTierLine(schemeName: string): string {
   return configTiersForDisplay(schemeName)
-    .map((t) => `${t.minQty}/$${(t.unitPriceCents / 100).toFixed(0)}`)
+    .map((t) => {
+      const price = `$${(t.unitPriceCents / 100).toFixed(0)}/ea`;
+      return t.minQty === 1 ? price : `${t.minQty}+ ${price}`;
+    })
     .join(" · ");
+}
+
+// Renders "4 coasters $20".
+export function formatCoasterLine(schemeName: string): string {
+  const coasterPrice = schemeName === "heroes" ? COASTER_PACK_PRICE_HERO : COASTER_PACK_PRICE_STANDARD;
+  return `${COASTER_PACK_SIZE} coasters $${coasterPrice}`;
+}
+
+// Combined single-line version for contexts with room for it (carousel
+// price lines, collection tiles/hero badges).
+export function formatTiers(schemeName: string): string {
+  return `${formatCapTierLine(schemeName)} · ${formatCoasterLine(schemeName)}`;
 }
 
 // ── Discount display ─────────────────────────────────────────────────────────

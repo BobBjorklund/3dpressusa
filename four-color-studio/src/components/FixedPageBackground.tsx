@@ -1,6 +1,6 @@
 export default function FixedPageBackground({
   src,
-  overlay = "bg-zinc-950/75",
+  overlay = "bg-gunmetal/80",
 }: {
   src: string;
   overlay?: string;

@@ -73,12 +73,12 @@ export default function BuyButton() {
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
             onClick={() => setShowModal(false)}
           />
-          <div className="relative z-10 w-full max-w-sm rounded-2xl border border-white/10 bg-zinc-900 p-6 shadow-2xl">
+          <div className="relative z-10 w-full max-w-sm rounded-md border border-brushed-aluminum/25 bg-steel-panel p-6 shadow-2xl">
             <div className="mb-3 text-3xl">🚗</div>
-            <h3 className="mb-2 text-base font-black leading-snug">
+            <h3 className="mb-2 font-display text-lg uppercase tracking-wide leading-snug text-white">
               Do you already own a base unit?
             </h3>
-            <p className="mb-6 text-sm leading-relaxed text-white/60">
+            <p className="mb-6 text-sm leading-relaxed text-brushed-aluminum">
               Each faceplate clips onto our hitch receiver mount. If you don't
               already own one, you'll need it to use your new cap.
             </p>
@@ -86,16 +86,16 @@ export default function BuyButton() {
               <button
                 type="button"
                 onClick={handleAddBaseUnit}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-black text-black transition hover:bg-zinc-200 active:scale-[0.98]"
+                className="flex w-full items-center justify-center gap-2 rounded-sm bg-plate-red px-6 py-3 font-display text-sm uppercase tracking-wide text-white transition hover:bg-plate-red/85 active:scale-[0.98]"
               >
-                Add base unit — ${baseUnitPrice}
+                Add base unit - ${baseUnitPrice}
               </button>
               <button
                 type="button"
                 onClick={() => { setShowModal(false); doCheckout(); }}
-                className="w-full rounded-full border border-white/10 px-6 py-3 text-sm font-medium text-white/60 transition hover:bg-white/[0.06] hover:text-white"
+                className="w-full rounded-sm border border-brushed-aluminum/25 px-6 py-3 text-sm font-medium text-brushed-aluminum transition hover:bg-white/[0.06] hover:text-white"
               >
-                I already own one — continue
+                I already own one - continue
               </button>
             </div>
           </div>
@@ -107,7 +107,7 @@ export default function BuyButton() {
           type="button"
           onClick={handleCheckoutClick}
           disabled={loading || cartItems.length === 0}
-          className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3.5 text-sm font-black text-black transition hover:bg-zinc-200 active:scale-[0.98] disabled:opacity-50"
+          className="flex w-full items-center justify-center gap-2 rounded-sm bg-plate-red px-6 py-3.5 font-display text-sm uppercase tracking-wide text-white transition hover:bg-plate-red/85 active:scale-[0.98] disabled:opacity-50"
         >
           {loading ? (
             <>
@@ -127,7 +127,7 @@ export default function BuyButton() {
           )}
         </button>
         {error && (
-          <p className="text-center text-xs text-red-400">{error}</p>
+          <p className="text-center text-xs text-plate-red">{error}</p>
         )}
       </div>
     </>

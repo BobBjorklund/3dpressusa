@@ -41,26 +41,26 @@ export default function AddCoverButton({
         type="button"
         onClick={handleAdd}
         disabled={added}
-        className={`flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition active:scale-[0.98] disabled:opacity-50 ${
+        className={`flex items-center justify-between gap-3 rounded-sm border px-4 py-3 text-left transition active:scale-[0.98] disabled:opacity-50 ${
           added
             ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-100"
-            : "border-white/10 bg-white/[0.04] text-white hover:bg-white/[0.08]"
+            : "border-brushed-aluminum/25 bg-steel-panel text-white hover:border-brushed-aluminum/45"
         }`}
       >
         <div>
-          <p className="text-sm font-bold">
+          <p className="text-sm font-semibold">
             {added ? "Added!" : alreadyInCart ? "Add another base unit" : "Don't have the base unit yet?"}
           </p>
           {!added && !alreadyInCart && (
-            <p className="mt-0.5 text-xs text-white/50">
-              Receiver-mounted base + PETG clip — needed once, works with every cap
+            <p className="mt-0.5 text-xs text-brushed-aluminum">
+              Receiver-mounted base + PETG clip - needed once, works with every cap
             </p>
           )}
         </div>
         {!added && (
-          <span className="flex-shrink-0 text-right text-sm font-black text-white/80">
+          <span className="flex-shrink-0 text-right font-mono text-sm text-white">
             ${price}
-            {pct !== null && <span className="ml-1.5 text-[10px] font-bold text-emerald-300">{pct}% off</span>}
+            {pct !== null && <span className="ml-1.5 text-[10px] font-bold text-emerald-400">{pct}% off</span>}
           </span>
         )}
       </button>
@@ -73,10 +73,10 @@ export default function AddCoverButton({
         type="button"
         onClick={handleAdd}
         disabled={added}
-        className={`flex items-center justify-center gap-2 rounded-full px-8 py-4 text-base font-black transition active:scale-[0.98] disabled:opacity-50 ${
+        className={`flex items-center justify-center gap-2 rounded-sm px-8 py-4 font-display text-base uppercase tracking-wide transition active:scale-[0.98] disabled:opacity-50 ${
           added
-            ? "bg-emerald-500 text-white"
-            : "bg-white text-black hover:bg-zinc-200"
+            ? "bg-emerald-600 text-white"
+            : "bg-plate-red text-white hover:bg-plate-red/85"
         }`}
       >
         {added ? (
@@ -89,7 +89,7 @@ export default function AddCoverButton({
             <CartIcon />
             {alreadyInCart
               ? "Add Another Base Unit"
-              : `Add to Cart — $${price}${pct !== null ? ` (${pct}% off)` : ""}`}
+              : `Add to Cart - $${price}${pct !== null ? ` (${pct}% off)` : ""}`}
           </>
         )}
       </button>

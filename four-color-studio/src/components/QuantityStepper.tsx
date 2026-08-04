@@ -24,16 +24,16 @@ export default function QuantityStepper({
       <button
         type="button"
         onClick={() => onDelta(-1)}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12]"
+        className="flex h-7 w-7 items-center justify-center rounded-sm border border-brushed-aluminum/25 bg-steel-panel text-brushed-aluminum transition hover:border-brushed-aluminum/45 hover:text-white"
         aria-label="Decrease quantity"
       >
         <MinusIcon />
       </button>
-      <span className={`${widthClassName} text-center text-sm font-bold`}>{label ?? value}</span>
+      <span className={`${widthClassName} text-center font-mono text-sm text-white`}>{label ?? value}</span>
       <button
         type="button"
         onClick={() => onDelta(1)}
-        className="flex h-7 w-7 items-center justify-center rounded-full border border-white/10 bg-white/[0.06] text-white/70 transition hover:bg-white/[0.12]"
+        className="flex h-7 w-7 items-center justify-center rounded-sm border border-brushed-aluminum/25 bg-steel-panel text-brushed-aluminum transition hover:border-brushed-aluminum/45 hover:text-white"
         aria-label="Increase quantity"
       >
         <PlusIcon />
