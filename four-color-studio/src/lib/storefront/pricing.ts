@@ -1,4 +1,4 @@
-import { STANDARD_TIERS, HERO_TIERS, getTierPrice, coasterPackPrice, coverPrice as coverPriceFor, CartItem } from "./pricing-config";
+import { STANDARD_TIERS, HERO_TIERS, getTierPrice, coasterPackPrice, coverPrice as coverPriceFor, PET_COASTER_PRICE, CartItem } from "./pricing-config";
 
 // The single source of truth for cart totals — called from both the client
 // (CartContext, for the subtotal shown in the cart drawer) and the server
@@ -11,6 +11,7 @@ export function calculateCart(items: CartItem[]) {
   const capItems = items.filter((i) => i.type === "cap");
   const coverItems = items.filter((i) => i.type === "cover");
   const coasterItems = items.filter((i) => i.type === "coaster");
+  const petCoasterItems = items.filter((i) => i.type === "petCoaster");
 
   const totalCaps = capItems.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -75,6 +76,21 @@ export function calculateCart(items: CartItem[]) {
 
     breakdown.push({
       ...coaster,
+      unitPrice,
+      itemTotal,
+    });
+  }
+
+  // PET COASTERS — flat $35/set, no tier lookup; the design itself (which of
+  // the customer's approved images goes on which of the 4 coasters) is
+  // carried on the cart entry for display/fulfillment, not priced here.
+  for (const petCoaster of petCoasterItems) {
+    const unitPrice = PET_COASTER_PRICE;
+    const itemTotal = unitPrice * petCoaster.quantity;
+    subtotal += itemTotal;
+
+    breakdown.push({
+      ...petCoaster,
       unitPrice,
       itemTotal,
     });

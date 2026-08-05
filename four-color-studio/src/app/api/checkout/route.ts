@@ -18,12 +18,13 @@ export async function POST(req: NextRequest) {
   const items: CartItem[] = body.items;
   const displayNames: Record<string, string> = body.displayNames ?? {};
   const stickFamilyConfigs: Record<string, string> = body.stickFamilyConfigs ?? {};
+  const petCoasterConfigs: Record<string, string> = body.petCoasterConfigs ?? {};
 
   if (!Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
   }
 
-  const VALID_TYPES = new Set(['cap', 'cover', 'coaster']);
+  const VALID_TYPES = new Set(['cap', 'cover', 'coaster', 'petCoaster']);
   const VALID_PRICING = new Set(['standard', 'hero', 'patriotic', 'custom']);
   for (const item of items) {
     if (!VALID_TYPES.has(item.type)) {
@@ -88,7 +89,7 @@ export async function POST(req: NextRequest) {
     automatic_tax: { enabled: true },
     success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/collections`,
-    metadata: stickFamilyConfigs,
+    metadata: { ...stickFamilyConfigs, ...petCoasterConfigs },
   });
 
   return NextResponse.json({ url: session.url });

@@ -256,6 +256,12 @@ export default async function HomePage() {
               >
                 designs@3dpressusa.com
               </Link>
+              <Link
+                href="/pet-coasters"
+                className="rounded-sm border border-hazard-yellow/40 bg-hazard-yellow/10 px-6 py-3 font-display text-sm uppercase tracking-wide text-hazard-yellow transition hover:bg-hazard-yellow/20"
+              >
+                Put your pet on a coaster →
+              </Link>
               <div className="rounded-sm border border-plate-red/40 px-4 py-3 font-mono text-sm text-brushed-aluminum">
                 Any shape · Any design · Standard pricing
               </div>

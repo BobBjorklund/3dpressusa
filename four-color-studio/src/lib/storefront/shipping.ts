@@ -7,7 +7,7 @@ import type { CartItem } from "./pricing-config";
 
 // Unit weights in grams (measured)
 // coaster: per 4-pack (29g each)
-export const WEIGHT_G = { cap: 29, cover: 80, coaster: 116 } as const; // cover = base + retaining clip combo
+export const WEIGHT_G = { cap: 29, cover: 80, coaster: 116, petCoaster: 116 } as const; // cover = base + retaining clip combo; petCoaster = same physical product as coaster
 export const PACKAGING_G = 40; // bubble mailer
 
 export function orderWeightG(items: CartItem[]): number {

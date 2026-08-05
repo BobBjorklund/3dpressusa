@@ -36,6 +36,17 @@ export default function BuyButton() {
         ])
       );
 
+      // Same pattern for pet-coaster orders: requestId + the 4 approved
+      // design URLs, so the webhook can mark the request "ordered" and list
+      // the chosen designs in the fulfillment email.
+      const petEntries = entries.filter((e) => e.type === 'petCoaster' && e.requestId);
+      const petCoasterConfigs = Object.fromEntries(
+        petEntries.map((e, i) => [
+          `pc_${i}`,
+          [e.requestId, ...(e.petCoasterSelections ?? [])].join('|'),
+        ])
+      );
+
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,6 +54,7 @@ export default function BuyButton() {
           items: cartItems,
           displayNames: Object.fromEntries(entries.map((e) => [e.id, e.name])),
           stickFamilyConfigs,
+          petCoasterConfigs,
         }),
       });
 

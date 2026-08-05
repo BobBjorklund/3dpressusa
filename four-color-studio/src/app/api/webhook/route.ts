@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import fs from 'fs';
 import path from 'path';
+import { prisma } from '@/lib/prisma';
+import { brevoSend } from '@/lib/email';
+import { urlToThumbUrl } from '@/lib/image';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2026-03-25.dahlia' as any,
@@ -120,32 +123,54 @@ function buildItemRowsHtml(
     .join('');
 }
 
-// ─── Email sender ─────────────────────────────────────────────────────────────
+// Pet-coaster metadata is keyed pc_0, pc_1, … (see BuyButton.tsx), each value
+// `requestId|url1|url2|url3|url4` — one design URL per physical coaster.
+// Thumbnails are resized and uploaded as their own small Blob (see
+// src/lib/image.ts) instead of pointing at the full-res Blob URLs, same fix
+// as the customer/admin emails.
+async function buildPetCoasterHtml(meta: Record<string, string>): Promise<string> {
+  const pcKeys = Object.keys(meta).filter((k) => k.startsWith('pc_'));
+  if (pcKeys.length === 0) return '';
 
-async function brevoSend(
-  to: string,
-  subject: string,
-  htmlContent: string,
-  attachments?: { content: string; name: string }[],
-) {
-  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
-    method: 'POST',
-    headers: {
-      'api-key': process.env.BREVO_API_KEY!,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      sender: { name: '3DPress USA', email: 'orders@3dpressusa.com' },
-      to: [{ email: to }],
-      subject,
-      htmlContent,
-      ...(attachments?.length ? { attachment: attachments } : {}),
+  const blocks = await Promise.all(
+    pcKeys.map(async (key) => {
+      const [requestId, ...urls] = meta[key].split('|');
+      const thumbs = await Promise.all(urls.map((url) => urlToThumbUrl(url).catch(() => url)));
+      const imgs = thumbs
+        .map(
+          (src, i) => `
+      <div style="display:inline-block;text-align:center;margin:4px;">
+        <img src="${src}" style="width:100px;height:100px;object-fit:cover;border-radius:6px;" />
+        <div style="color:#999;font-size:11px;margin-top:2px;">Coaster ${i + 1}</div>
+      </div>`,
+        )
+        .join('');
+      return `
+      <div style="background:#1a1a1a;border-radius:8px;padding:16px;margin-bottom:24px;">
+        <div style="color:#999;font-size:12px;margin-bottom:8px;">PET COASTER SET — request ${requestId}</div>
+        ${imgs}
+      </div>`;
     }),
-  });
-  if (!res.ok) {
-    const body = await res.text().catch(() => '(unreadable)');
-    console.error(`[brevo] ${res.status} sending to ${to}: ${body}`);
-  }
+  );
+
+  return blocks.join('');
+}
+
+// Marks each pet-coaster request in this order as fulfilled, so it drops off
+// the pending list in /admin/pet-design. Best-effort — a failure here
+// shouldn't block the order emails from going out.
+async function markPetCoasterRequestsOrdered(meta: Record<string, string>) {
+  const pcKeys = Object.keys(meta).filter((k) => k.startsWith('pc_'));
+  await Promise.all(
+    pcKeys.map(async (key) => {
+      const [requestId] = meta[key].split('|');
+      try {
+        await prisma.petDesignRequest.update({ where: { id: requestId }, data: { status: 'ordered' } });
+      } catch (err) {
+        console.error(`[webhook] failed to mark pet-design request ${requestId} as ordered:`, err);
+      }
+    }),
+  );
 }
 
 async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
@@ -169,6 +194,8 @@ async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems:
     qty: 'padding:6px 12px;border-bottom:1px solid #333;text-align:center;',
     total: 'padding:6px 12px;border-bottom:1px solid #333;text-align:right;',
   });
+
+  const petCoasterHtml = await buildPetCoasterHtml(meta);
 
   const html = `
     <div style="font-family:monospace;background:#0a0a0a;color:#e5e5e5;padding:32px;max-width:600px;">
@@ -204,11 +231,13 @@ async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems:
         <div>${addr?.city ?? ''}, ${addr?.state ?? ''} ${addr?.postal_code ?? ''}</div>
       </div>
 
-      <div style="background:#1a1a1a;border-radius:8px;padding:16px;">
+      <div style="background:#1a1a1a;border-radius:8px;padding:16px;margin-bottom:24px;">
         <div style="color:#999;font-size:12px;margin-bottom:8px;">CUSTOMER</div>
         <div>${customer?.name ?? '—'}</div>
         <div><a href="mailto:${customer?.email}" style="color:#60a5fa;">${customer?.email ?? '—'}</a></div>
       </div>
+
+      ${petCoasterHtml}
     </div>
   `;
 
@@ -388,6 +417,7 @@ export async function POST(req: NextRequest) {
     await Promise.all([
       sendFulfillmentEmail(session, lineItems),
       sendCustomerEmail(session, lineItems),
+      markPetCoasterRequestsOrdered(session.metadata ?? {}),
     ]);
   }
 

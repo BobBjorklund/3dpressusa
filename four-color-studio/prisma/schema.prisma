@@ -323,3 +323,26 @@ model Item {
 
   @@index([collectionId, active, sortOrder])
 }
+
+// ── PetDesignRequest ─────────────────────────────────────────────────────────
+// "Put your pet on a coaster/hitch": customer uploads a photo, we send back
+// print-ready design proposals (made externally), customer assembles a
+// 4-coaster set from any combination of those proposals, then buys it for a
+// flat $35. See src/app/pet-coasters/ and src/app/admin/pet-design/.
+
+model PetDesignRequest {
+  id                 String   @id @default(cuid())
+  status             String   @default("submitted") // submitted | proposals_sent | approved | ordered
+  customerEmail      String
+  customerName       String?
+  notes              String?  // customer's design ideas, optional
+  originalImageUrl   String   // Vercel Blob URL
+  proposalImageUrls  String[] @default([])
+  approvedSelections String[] @default([]) // exactly 4 entries once approved — one design URL per physical coaster (index 0 = Coaster 1, etc.); repeats allowed
+  approvalToken      String   @unique // used in the customer approval link
+  messages           Json[]   @default([]) // { from: "admin" | "customer", body: string, createdAt: string } — Q&A thread on the approval page
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([status])
+}

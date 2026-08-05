@@ -36,6 +36,7 @@ export default function Footer() {
               {[
                 { label: "Collections", href: "/collections" },
                 { label: "Base Unit", href: "/base-unit" },
+                { label: "Pet Coasters", href: "/pet-coasters" },
                 { label: "Custom Work", href: "mailto:designs@3dpressusa.com" },
               ].map((l) => (
                 <li key={l.href}>

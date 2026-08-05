@@ -16,14 +16,16 @@ import { calculateCart } from "@/lib/storefront/pricing";
 export type CartEntry = {
   id: string;             // slug, or slug::color1::color2 for color-configured items
   slug: string;
-  type: "cap" | "cover" | "coaster";
-  quantity: number;       // coasters: number of 4-packs
+  type: "cap" | "cover" | "coaster" | "petCoaster";
+  quantity: number;       // coasters/petCoaster: number of 4-packs/sets
   pricingType?: CapPricingType;
   highDetail?: boolean;
   name: string;
   colorKeys?: string[];   // selected inventory color keys (e.g. logo color, bg color)
   colorHexes?: [string, string];     // [logoHex, bgHex] for items with no premade 3MF
   stickFamilySlots?: SlotConfig[];   // slot config for stick family orders
+  petCoasterSelections?: string[];   // pet-coasters: the 4 approved design URLs, one per slot
+  requestId?: string;                // pet-coasters: the PetDesignRequest id, for fulfillment
 };
 
 type CartContextValue = {

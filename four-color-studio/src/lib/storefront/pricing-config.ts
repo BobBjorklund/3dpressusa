@@ -1,12 +1,17 @@
 export type CapPricingType = "standard" | "hero" | "patriotic" | "custom";
 export type CartItem = {
   id: string;
-  type: "cap" | "cover" | "coaster";
-  quantity: number; // coasters: number of 4-packs
+  type: "cap" | "cover" | "coaster" | "petCoaster";
+  quantity: number; // coasters/petCoaster: number of 4-packs/sets
 
   pricingType?: CapPricingType; // caps and coasters
   highDetail?: boolean; // custom only
 };
+
+// "Put your pet on a coaster/hitch": a flat-priced 4-coaster set assembled
+// from customer-approved custom designs — no tier lookup, unlike the regular
+// coaster pack pricing above.
+export const PET_COASTER_PRICE = 35;
 
 // Coasters are sold in fixed 4-packs of a single design (no mixing designs
 // within a pack) — any existing item can be ordered this way using its own
