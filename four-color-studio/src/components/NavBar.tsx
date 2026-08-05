@@ -161,6 +161,13 @@ export default function NavBar({
             </div>
           </div>
 
+          <Link
+            href="/pet-coasters"
+            className="rounded-sm px-4 py-2 text-sm font-semibold text-white/70 transition hover:bg-white/[0.06] hover:text-white"
+          >
+            Pet Coasters
+          </Link>
+
           <CartButton onClick={openCart} itemCount={itemCount} className="ml-1" />
         </nav>
 
@@ -237,6 +244,15 @@ export default function NavBar({
               {c.name}
             </Link>
           ))}
+
+          <div className="my-3 border-t border-brushed-aluminum/20" />
+          <Link
+            href="/pet-coasters"
+            onClick={() => setOpen(false)}
+            className="block rounded-sm px-3 py-3 font-display text-sm uppercase tracking-wide text-white/90 transition hover:bg-white/[0.06]"
+          >
+            Pet Coasters
+          </Link>
         </nav>
       </div>
     </header>
