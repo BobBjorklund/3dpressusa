@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'node:crypto';
-import { put } from '@vercel/blob';
 import { isAdmin } from '@/lib/admin-auth';
 import { prisma } from '@/lib/prisma';
 import { brevoSend } from '@/lib/email';
-import { bufferToThumbUrl, urlToThumbUrl } from '@/lib/image';
+import { urlToThumbUrl } from '@/lib/image';
 
 // Called from the admin detail page (src/app/admin/pet-design/[id]/page.tsx)
 // once the shop has generated design proposals externally (ChatGPT/image-gen)
-// and is ready to send them to the customer for approval.
-
-const MAX_BYTES = 10 * 1024 * 1024;
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+// and is ready to send them to the customer for approval. Images are already
+// uploaded to Blob client-side by the time this runs (see
+// src/components/ProposalUploadForm.tsx + /api/pet-design/upload) — a
+// serverless function's request body is capped around 4.5MB, too small for
+// several full-res design images, so this route only ever receives the
+// resulting URLs, never the image bytes themselves.
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   if (!(await isAdmin())) {
@@ -24,29 +24,22 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
-  const form = await req.formData();
-  const files = form.getAll('images').filter((f): f is File => f instanceof File);
+  const body = await req.json();
+  const newUrls = Array.isArray(body.imageUrls) ? body.imageUrls.filter((u: unknown) => typeof u === 'string') : [];
 
-  if (files.length === 0) {
+  if (newUrls.length === 0) {
     return NextResponse.json({ error: 'At least one design image is required' }, { status: 400 });
   }
-  for (const file of files) {
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'Images must be JPG, PNG, or WEBP' }, { status: 400 });
+  if (!newUrls.every((url: string) => {
+    try {
+      return new URL(url).hostname.endsWith('.public.blob.vercel-storage.com');
+    } catch {
+      return false;
     }
-    if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: 'Each image must be under 10MB' }, { status: 400 });
-    }
+  })) {
+    return NextResponse.json({ error: 'Invalid image reference' }, { status: 400 });
   }
 
-  const newBuffers = await Promise.all(files.map((file) => file.arrayBuffer().then(Buffer.from)));
-
-  const uploaded = await Promise.all(
-    files.map((file, i) =>
-      put(`pet-design/${id}/${randomUUID()}-${file.name}`, newBuffers[i], { access: 'public', contentType: file.type }),
-    ),
-  );
-  const newUrls = uploaded.map((b) => b.url);
   const previousUrls = request.proposalImageUrls;
 
   const updated = await prisma.petDesignRequest.update({
@@ -57,15 +50,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     },
   });
 
-  // Inline thumbnails so the email doesn't have to pull full-res images —
-  // resize newly-uploaded ones from the buffer already in memory, and
-  // re-fetch+resize any from a previous round (this could be a 2nd round of
-  // proposals). Fall back to the full-size URL if resizing fails for either.
-  const [previousThumbs, newThumbs] = await Promise.all([
-    Promise.all(previousUrls.map((url) => urlToThumbUrl(url).catch(() => url))),
-    Promise.all(newBuffers.map((buf, i) => bufferToThumbUrl(buf).catch(() => uploaded[i].url))),
-  ]);
-  const allThumbs = [...previousThumbs, ...newThumbs];
+  // Inline thumbnails so the email doesn't have to pull full-res images.
+  // Fall back to the full-size URL if resizing fails.
+  const allThumbs = await Promise.all(
+    [...previousUrls, ...newUrls].map((url) => urlToThumbUrl(url).catch(() => url)),
+  );
 
   const approveUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/pet-coasters/approve/${updated.approvalToken}`;
   const thumbs = allThumbs

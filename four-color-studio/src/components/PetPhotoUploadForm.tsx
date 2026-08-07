@@ -1,36 +1,63 @@
 "use client";
 
 import { useState } from "react";
+import { upload } from "@vercel/blob/client";
 
 const MAX_PHOTOS = 4;
 
 export default function PetPhotoUploadForm() {
-  const [status, setStatus] = useState<"idle" | "submitting" | "done" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "uploading" | "submitting" | "done" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [fileCount, setFileCount] = useState(0);
+  const [files, setFiles] = useState<File[]>([]);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setFileCount(e.target.files?.length ?? 0);
+    setFiles(Array.from(e.target.files ?? []));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (fileCount > MAX_PHOTOS) {
+    if (files.length === 0) {
+      setError("Please select at least one photo.");
+      return;
+    }
+    if (files.length > MAX_PHOTOS) {
       setError(`Please select up to ${MAX_PHOTOS} photos.`);
       return;
     }
 
-    setStatus("submitting");
     setError(null);
-
     const form = e.currentTarget;
     const formData = new FormData(form);
+    const email = formData.get("email");
+    const name = formData.get("name");
+    const notes = formData.get("notes");
 
     try {
+      // Upload straight from the browser to Blob — a serverless function's
+      // request body is capped around 4.5MB, and 4 full-res phone photos
+      // blow past that easily. This way the image bytes never touch our
+      // function at all, only the resulting URLs do.
+      setStatus("uploading");
+      const uploaded = await Promise.all(
+        files.map((file) =>
+          upload(`pet-design/${crypto.randomUUID()}-${file.name}`, file, {
+            access: "public",
+            handleUploadUrl: "/api/pet-design/upload",
+          }),
+        ),
+      );
+
+      setStatus("submitting");
       const res = await fetch("/api/pet-design/submit", {
         method: "POST",
-        body: formData,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          photoUrls: uploaded.map((b) => b.url),
+          email,
+          name,
+          notes,
+        }),
       });
       if (!res.ok) {
         const { error: msg } = await res.json().catch(() => ({}));
@@ -38,7 +65,7 @@ export default function PetPhotoUploadForm() {
       }
       setStatus("done");
       form.reset();
-      setFileCount(0);
+      setFiles([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setStatus("error");
@@ -56,6 +83,8 @@ export default function PetPhotoUploadForm() {
     );
   }
 
+  const busy = status === "uploading" || status === "submitting";
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div>
@@ -72,9 +101,9 @@ export default function PetPhotoUploadForm() {
           onChange={handleFileChange}
           className="block w-full rounded-sm border border-brushed-aluminum/25 bg-steel-panel px-3 py-2 text-sm text-white file:mr-3 file:rounded-sm file:border-0 file:bg-plate-red file:px-3 file:py-1.5 file:font-display file:text-xs file:uppercase file:tracking-wide file:text-white"
         />
-        {fileCount > 0 && (
-          <p className={`mt-1 text-xs ${fileCount > MAX_PHOTOS ? "text-plate-red" : "text-brushed-aluminum"}`}>
-            {fileCount} of {MAX_PHOTOS} photos selected
+        {files.length > 0 && (
+          <p className={`mt-1 text-xs ${files.length > MAX_PHOTOS ? "text-plate-red" : "text-brushed-aluminum"}`}>
+            {files.length} of {MAX_PHOTOS} photos selected
           </p>
         )}
       </div>
@@ -120,10 +149,10 @@ export default function PetPhotoUploadForm() {
 
       <button
         type="submit"
-        disabled={status === "submitting" || fileCount > MAX_PHOTOS}
+        disabled={busy || files.length > MAX_PHOTOS}
         className="rounded-sm bg-plate-red px-6 py-3 font-display text-sm uppercase tracking-wide text-white transition hover:bg-plate-red/85 disabled:opacity-50"
       >
-        {status === "submitting" ? "Uploading…" : "Send us your pet"}
+        {status === "uploading" ? "Uploading photos…" : status === "submitting" ? "Sending…" : "Send us your pet"}
       </button>
     </form>
   );

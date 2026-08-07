@@ -1,60 +1,54 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'node:crypto';
-import { put } from '@vercel/blob';
 import { prisma } from '@/lib/prisma';
 import { brevoSend } from '@/lib/email';
-import { bufferToThumbUrl } from '@/lib/image';
+import { urlToThumbUrl } from '@/lib/image';
 
 // Entry point for the "Put your pet on a coaster/hitch" upload form
-// (src/app/pet-coasters/page.tsx). Stores the photo(s), creates the request
-// row, and emails both the shop (to review + propose designs) and the
+// (src/components/PetPhotoUploadForm.tsx). Photos are already uploaded to
+// Blob client-side by the time this runs (see /api/pet-design/upload) — a
+// serverless function's request body is capped around 4.5MB, too small for
+// 4 full-res phone photos, so this route only ever receives small JSON with
+// the resulting URLs, never the image bytes themselves. Creates the request
+// row and emails both the shop (to review + propose designs) and the
 // customer (confirmation). See src/app/admin/pet-design/ for the next step.
 
-const MAX_BYTES = 10 * 1024 * 1024; // 10MB per photo
 const MAX_PHOTOS = 4; // up to one per coaster slot — customers with fewer pets just get proposals for what they sent
-const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/heic', 'image/heif']);
 
 export async function POST(req: NextRequest) {
-  const form = await req.formData();
+  const body = await req.json();
+  const photoUrls = Array.isArray(body.photoUrls) ? body.photoUrls.filter((u: unknown) => typeof u === 'string') : [];
+  const customerEmail = body.email;
+  const customerName = body.name;
+  const notes = body.notes;
 
-  const files = form.getAll('photos').filter((f): f is File => f instanceof File);
-  const customerEmail = form.get('email');
-  const customerName = form.get('name');
-  const notes = form.get('notes');
-
-  if (files.length === 0) {
+  if (photoUrls.length === 0) {
     return NextResponse.json({ error: 'At least one photo is required' }, { status: 400 });
   }
-  if (files.length > MAX_PHOTOS) {
+  if (photoUrls.length > MAX_PHOTOS) {
     return NextResponse.json({ error: `You can upload up to ${MAX_PHOTOS} photos` }, { status: 400 });
   }
   if (typeof customerEmail !== 'string' || !customerEmail.includes('@')) {
     return NextResponse.json({ error: 'A valid email is required' }, { status: 400 });
   }
-  for (const file of files) {
-    if (!ALLOWED_TYPES.has(file.type)) {
-      return NextResponse.json({ error: 'Photos must be JPG, PNG, WEBP, or HEIC images' }, { status: 400 });
+  // Only Blob URLs we actually control should be accepted here, not
+  // arbitrary attacker-supplied URLs.
+  if (!photoUrls.every((url: string) => {
+    try {
+      return new URL(url).hostname.endsWith('.public.blob.vercel-storage.com');
+    } catch {
+      return false;
     }
-    if (file.size > MAX_BYTES) {
-      return NextResponse.json({ error: 'Each photo must be under 10MB' }, { status: 400 });
-    }
+  })) {
+    return NextResponse.json({ error: 'Invalid photo reference' }, { status: 400 });
   }
 
-  const originalBuffers = await Promise.all(files.map((file) => file.arrayBuffer().then(Buffer.from)));
-
-  const uploaded = await Promise.all(
-    files.map((file, i) =>
-      put(`pet-design/${randomUUID()}-${file.name}`, originalBuffers[i], { access: 'public', contentType: file.type }),
-    ),
-  );
-  const originalImageUrls = uploaded.map((b) => b.url);
-
-  // Full-res goes to Blob for the admin page / print production. The email
-  // gets small inline thumbnails instead — HEIC sometimes isn't supported by
-  // sharp's prebuilt binary, so fall back to the full-size URL per-photo
-  // rather than fail the whole submission over a slow-loading email image.
+  // Small inline thumbnails for the email instead of the full-res Blob URLs
+  // — HEIC sometimes isn't supported by sharp's prebuilt binary, so fall
+  // back to the full-size URL per-photo rather than fail the whole
+  // submission over a slow-loading email image.
   const thumbSrcs = await Promise.all(
-    originalBuffers.map((buf, i) => bufferToThumbUrl(buf).catch(() => uploaded[i].url)),
+    photoUrls.map((url: string) => urlToThumbUrl(url).catch(() => url)),
   );
 
   const approvalToken = randomUUID();
@@ -64,7 +58,7 @@ export async function POST(req: NextRequest) {
       customerEmail,
       customerName: typeof customerName === 'string' && customerName.trim() ? customerName.trim() : null,
       notes: typeof notes === 'string' && notes.trim() ? notes.trim() : null,
-      originalImageUrls,
+      originalImageUrls: photoUrls,
       approvalToken,
     },
   });
@@ -83,7 +77,7 @@ export async function POST(req: NextRequest) {
           <h2 style="color:#fff;margin:0 0 16px;">New Pet Design Request</h2>
           <div style="margin-bottom:16px;">${photoThumbsHtml}</div>
           <p><strong>From:</strong> ${request.customerName ?? '(no name given)'} — ${request.customerEmail}</p>
-          <p><strong>Photos:</strong> ${originalImageUrls.length}</p>
+          <p><strong>Photos:</strong> ${photoUrls.length}</p>
           ${request.notes ? `<p><strong>Notes:</strong> ${request.notes}</p>` : '<p><em>No design notes provided.</em></p>'}
           <p style="margin-top:24px;">
             <a href="${adminUrl}" style="color:#60a5fa;">Review this request →</a>
@@ -97,7 +91,7 @@ export async function POST(req: NextRequest) {
       `
         <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e5e5e5;padding:32px;max-width:600px;">
           <h2 style="color:#fff;margin:0 0 16px;">Got it!</h2>
-          <p>We received ${originalImageUrls.length > 1 ? `your ${originalImageUrls.length} photos` : "your pet's photo"} and we're putting together a few design ideas for your coaster set. You'll hear back from us by email within a few business days.</p>
+          <p>We received ${photoUrls.length > 1 ? `your ${photoUrls.length} photos` : "your pet's photo"} and we're putting together a few design ideas for your coaster set. You'll hear back from us by email within a few business days.</p>
           <p>Questions in the meantime? Just reply to this email.</p>
         </div>
       `,
