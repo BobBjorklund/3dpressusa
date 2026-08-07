@@ -23,7 +23,7 @@ export default async function AdminPetDesignListPage() {
               href={`/admin/pet-design/${r.id}`}
               className="flex items-center gap-4 rounded-sm border border-brushed-aluminum/25 bg-steel-panel p-4 transition hover:border-brushed-aluminum/45"
             >
-              <img src={r.originalImageUrl} alt="" className="h-16 w-16 flex-shrink-0 rounded-sm object-cover" />
+              <img src={r.originalImageUrls[0]} alt="" className="h-16 w-16 flex-shrink-0 rounded-sm object-cover" />
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-semibold text-white">{r.customerName ?? r.customerEmail}</div>
                 <div className="truncate text-xs text-brushed-aluminum">{r.customerEmail}</div>

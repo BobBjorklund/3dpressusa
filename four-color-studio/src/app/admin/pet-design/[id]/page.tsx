@@ -27,11 +27,21 @@ export default async function AdminPetDesignDetailPage({
         </h1>
         <p className="mt-1 text-sm text-brushed-aluminum">{request.customerEmail}</p>
 
-        <img
-          src={request.originalImageUrl}
-          alt=""
-          className="mt-6 max-h-[400px] w-full rounded-sm bg-steel-panel object-contain"
-        />
+        <div className="mt-6">
+          <div className="font-mono text-[10px] uppercase tracking-[0.25em] text-brushed-aluminum">
+            {request.originalImageUrls.length > 1 ? `${request.originalImageUrls.length} Pets` : "Original Photo"}
+          </div>
+          <div className={`mt-2 grid gap-2 ${request.originalImageUrls.length > 1 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-1"}`}>
+            {request.originalImageUrls.map((url) => (
+              <img
+                key={url}
+                src={url}
+                alt=""
+                className="max-h-[400px] w-full rounded-sm bg-steel-panel object-contain"
+              />
+            ))}
+          </div>
+        </div>
 
         {request.notes && (
           <div className="mt-4 rounded-sm border border-brushed-aluminum/25 bg-steel-panel p-4">

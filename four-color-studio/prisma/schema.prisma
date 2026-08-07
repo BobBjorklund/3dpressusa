@@ -336,7 +336,7 @@ model PetDesignRequest {
   customerEmail      String
   customerName       String?
   notes              String?  // customer's design ideas, optional
-  originalImageUrl   String   // Vercel Blob URL
+  originalImageUrls  String[] @default([]) // Vercel Blob URLs — up to 4, one per pet
   proposalImageUrls  String[] @default([])
   approvedSelections String[] @default([]) // exactly 4 entries once approved — one design URL per physical coaster (index 0 = Coaster 1, etc.); repeats allowed
   approvalToken      String   @unique // used in the customer approval link
