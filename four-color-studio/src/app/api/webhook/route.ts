@@ -173,6 +173,32 @@ async function markPetCoasterRequestsOrdered(meta: Record<string, string>) {
   );
 }
 
+// Creates the local Order row admin/orders reads from (see src/lib/stripe-order.ts
+// for how full details get hydrated live from Stripe later). Best-effort — a DB
+// hiccup here must never block the order emails from going out, same pattern as
+// markPetCoasterRequestsOrdered above.
+async function createOrderRecord(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
+  const customer = session.customer_details;
+  if (!customer?.email) return;
+
+  const shipping = session.collected_information?.shipping_details;
+  const itemsSummary = lineItems.map((i) => `${i.quantity}x ${i.description}`).join(', ');
+
+  try {
+    await prisma.order.create({
+      data: {
+        stripeSessionId: session.id,
+        customerEmail: customer.email,
+        customerName: shipping?.name ?? customer.name ?? null,
+        itemsSummary,
+        amountTotalCents: session.amount_total ?? 0,
+      },
+    });
+  } catch (err) {
+    console.error(`[webhook] failed to create Order record for session ${session.id}:`, err);
+  }
+}
+
 async function sendFulfillmentEmail(session: Stripe.Checkout.Session, lineItems: Stripe.LineItem[]) {
   // Build stick family preview PNGs from session metadata (sf_0, sf_1, …)
   const sfAttachments: { content: string; name: string }[] = [];
@@ -418,6 +444,7 @@ export async function POST(req: NextRequest) {
       sendFulfillmentEmail(session, lineItems),
       sendCustomerEmail(session, lineItems),
       markPetCoasterRequestsOrdered(session.metadata ?? {}),
+      createOrderRecord(session, lineItems),
     ]);
   }
 

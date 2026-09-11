@@ -1,6 +1,4 @@
 import { notFound } from "next/navigation";
-import { isAdmin } from "@/lib/admin-auth";
-import AdminKeyGate from "@/components/AdminKeyGate";
 import { prisma } from "@/lib/prisma";
 import ProposalUploadForm from "@/components/ProposalUploadForm";
 import MessageThread, { type PetDesignMessage } from "@/components/MessageThread";
@@ -10,14 +8,12 @@ export default async function AdminPetDesignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  if (!(await isAdmin())) return <AdminKeyGate />;
-
   const { id } = await params;
   const request = await prisma.petDesignRequest.findUnique({ where: { id } });
   if (!request) notFound();
 
   return (
-    <main className="min-h-screen bg-gunmetal px-6 py-10 text-white md:px-8">
+    <main className="px-6 py-10 md:px-8">
       <div className="mx-auto max-w-3xl">
         <div className="rounded-sm border border-hazard-yellow/40 bg-hazard-yellow/10 px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-hazard-yellow inline-block">
           {request.status}

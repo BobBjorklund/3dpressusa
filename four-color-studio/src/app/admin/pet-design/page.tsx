@@ -1,17 +1,13 @@
 import Link from "next/link";
-import { isAdmin } from "@/lib/admin-auth";
-import AdminKeyGate from "@/components/AdminKeyGate";
 import { prisma } from "@/lib/prisma";
 
 export default async function AdminPetDesignListPage() {
-  if (!(await isAdmin())) return <AdminKeyGate />;
-
   const requests = await prisma.petDesignRequest.findMany({
     orderBy: { createdAt: "desc" },
   });
 
   return (
-    <main className="min-h-screen bg-gunmetal px-6 py-10 text-white md:px-8">
+    <main className="px-6 py-10 md:px-8">
       <div className="mx-auto max-w-5xl">
         <h1 className="font-display text-3xl uppercase text-white">Pet Design Requests</h1>
 
