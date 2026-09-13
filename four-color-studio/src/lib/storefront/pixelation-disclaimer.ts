@@ -7,7 +7,6 @@ const PIXELATED_VARIANT_SUFFIXES = [
   "-camo-snow",
   "-camo-rwb",
   "-battle-tested",
-  "-trad-logo",
   "-honor-fallen",
   "-support",
   "-stand-with",
