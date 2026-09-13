@@ -13,7 +13,17 @@ const PIXELATED_VARIANT_SUFFIXES = [
   "-parent",
 ];
 
+// Branches whose camo-* variants have already been redone with the
+// smooth-path pipeline, ahead of the rest of that suffix group.
+const FIXED_CAMO_BRANCHES = ["airforce", "navy"];
+
 export function needsPixelationDisclaimer(slug: string): boolean {
+  if (
+    slug.includes("-camo-") &&
+    FIXED_CAMO_BRANCHES.some((branch) => slug.startsWith(`${branch}-camo-`))
+  ) {
+    return false;
+  }
   return PIXELATED_VARIANT_SUFFIXES.some((suffix) => slug.endsWith(suffix));
 }
 
