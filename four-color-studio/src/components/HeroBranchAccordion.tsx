@@ -19,7 +19,7 @@ const BRANCH_LABELS: [string, string][] = [
   ["army", "Army"],
   ["navy", "Navy"],
   ["fire", "Fire"],
-  ["ems", "EMS"],
+  ["healthcare", "Health Care"],
 ];
 
 function splitBranch(slug: string): { branch: string; label: string } {
