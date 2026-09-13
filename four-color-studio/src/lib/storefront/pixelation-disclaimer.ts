@@ -15,7 +15,7 @@ const PIXELATED_VARIANT_SUFFIXES = [
 
 // Branches whose camo-* variants have already been redone with the
 // smooth-path pipeline, ahead of the rest of that suffix group.
-const FIXED_CAMO_BRANCHES = ["airforce", "navy"];
+const FIXED_CAMO_BRANCHES = ["airforce", "navy", "fire", "marines"];
 
 export function needsPixelationDisclaimer(slug: string): boolean {
   if (
