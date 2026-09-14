@@ -6,7 +6,6 @@ const PIXELATED_VARIANT_SUFFIXES = [
   "-honor-fallen",
   "-support",
   "-stand-with",
-  "-parent",
 ];
 
 export function needsPixelationDisclaimer(slug: string): boolean {
