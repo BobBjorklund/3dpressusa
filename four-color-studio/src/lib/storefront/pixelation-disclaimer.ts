@@ -2,7 +2,6 @@
 // generator (pixelated logos/backgrounds) and haven't been regenerated with
 // the smooth-path pipeline yet. Flag them until that batch is redone.
 const PIXELATED_VARIANT_SUFFIXES = [
-  "-battle-tested",
   "-stand-with",
 ];
 
