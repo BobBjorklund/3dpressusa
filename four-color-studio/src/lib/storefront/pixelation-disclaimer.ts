@@ -3,7 +3,6 @@
 // the smooth-path pipeline yet. Flag them until that batch is redone.
 const PIXELATED_VARIANT_SUFFIXES = [
   "-battle-tested",
-  "-honor-fallen",
   "-support",
   "-stand-with",
 ];
